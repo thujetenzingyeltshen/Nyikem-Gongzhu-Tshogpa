@@ -1,0 +1,97 @@
+﻿<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>NGT Member Records</title>
+  <link rel="stylesheet" href="./styles.css" />
+</head>
+<body data-page="members">
+  <header class="site-header">
+    <div class="container nav-wrap">
+      <a class="brand" href="index.html">
+        <img class="brand-mark" src="./NGT img.png" alt="Nyikem Gongzhu Tshogpa logo" />
+        <span>Nyikem Gongzhu Tshogpa</span>
+      </a>
+      <button class="menu-toggle" aria-label="Toggle menu">Menu</button>
+      <nav class="main-nav">
+        <a href="index.html">Home</a>
+        <a href="about.html">About</a>
+        <a href="members.html" class="active">Members</a>
+        <a href="services.html">Services</a>
+        <a href="news.html">News & Events</a>
+        <a href="contact.html">Contact</a>
+      </nav>
+    </div>
+  </header>
+
+  <main>
+    <section class="page-hero">
+      <div class="container">
+        <div class="page-hero-card">
+          <p class="eyebrow">Records Portal</p>
+          <h1>Member Records and Structured Directory</h1>
+          <p>
+            Maintain official member details with searchable records, unique serial identification,
+            and a clear profile view for each registered member.
+          </p>
+        </div>
+      </div>
+    </section>
+
+    <section class="section">
+      <div class="container">
+        <div class="card data-card">
+          <div class="section-head">
+            <div>
+              <p class="eyebrow">Directory</p>
+              <h2 class="section-title">Member Register</h2>
+            </div>
+          </div>
+          <div class="table-tools">
+            <input type="text" id="memberSearch" placeholder="Search by Name or Serial ID" />
+            <select id="yearFilter">
+              <option value="">All Joined Years</option>
+            </select>
+          </div>
+
+          <div class="table-wrap">
+            <table>
+              <thead>
+                <tr>
+                  <th>Serial ID</th>
+                  <th>Full Name</th>
+                  <th>Service Year</th>
+                  <th>Nyikem Year</th>
+                  <th>Resignation Year</th>
+                  <th>Joined NGT</th>
+                  <th>Actions</th>
+                </tr>
+              </thead>
+              <tbody id="memberTableBody"></tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+    </section>
+  </main>
+
+  <dialog id="profileModal" class="profile-modal">
+    <article>
+      <h2>Member Profile</h2>
+      <div id="profileContent"></div>
+      <button class="btn top-gap" id="closeProfile" type="button">Close</button>
+    </article>
+  </dialog>
+
+  <footer class="site-footer">
+    <div class="container footer-wrap">
+      <p>Nyikem Gongzhu Tshogpa (NGT) | Kingdom of Bhutan</p>
+      <button id="langToggle" class="lang-btn" type="button">Dzongkha Placeholder</button>
+    </div>
+  </footer>
+
+  <script src="./members-data.js" defer></script>
+  <script src="./app.js" defer></script>
+</body>
+</html>

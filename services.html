@@ -1,0 +1,207 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>NGT Services</title>
+  <link rel="stylesheet" href="./styles.css" />
+</head>
+<body data-page="services">
+  <header class="site-header">
+    <div class="container nav-wrap">
+      <a class="brand" href="index.html">
+        <img class="brand-mark" src="./NGT img.png" alt="Nyikem Gongzhu Tshogpa logo" />
+        <span>Nyikem Gongzhu Tshogpa</span>
+      </a>
+      <button class="menu-toggle" aria-label="Toggle menu">Menu</button>
+      <nav class="main-nav">
+        <a href="index.html">Home</a>
+        <a href="about.html">About</a>
+        <a href="members.html">Members</a>
+        <a href="services.html" class="active">Services</a>
+        <a href="news.html">News & Events</a>
+        <a href="contact.html">Contact</a>
+      </nav>
+    </div>
+  </header>
+
+  <main>
+    <section class="page-hero">
+      <div class="container">
+        <div class="page-hero-card">
+          <p class="eyebrow">Services</p>
+          <h1>Service Lists and Duty Information</h1>
+          <p>
+            This page is dedicated to official NGT service-related lists, including members on GMC
+            Duty and the List of NGT De-Suup.
+          </p>
+        </div>
+      </div>
+    </section>
+
+    <section class="section">
+      <div class="container">
+        <div class="card elevated-card">
+          <div class="section-head">
+            <div>
+              <p class="eyebrow">Batch Selection</p>
+              <h2 class="section-title">Choose a Service List</h2>
+            </div>
+          </div>
+          <div class="service-controls">
+            <input id="serviceSearch" type="text" placeholder="Search by name, position, or residence" />
+            <select id="serviceBatchSelect">
+              <option value="gmc-fifth">NGT on GMC Duty - Fifth GMC Volunteers</option>
+              <option value="desuup-list">List of NGT De-Suup</option>
+            </select>
+            <select id="serviceYearFilter">
+              <option value="">All Records</option>
+              <option value="current">Current Batch</option>
+            </select>
+          </div>
+        </div>
+
+        <article class="card elevated-card top-gap service-batch is-active" data-batch="gmc-fifth">
+          <p class="eyebrow">List One</p>
+          <h2 class="section-title">NGT on GMC Duty - Fifth GMC Volunteers</h2>
+          <p class="muted">List of NGT GMC Volunteers as on 3rd February.</p>
+          <div class="service-summary-grid top-gap">
+            <article class="service-summary-card">
+              <span class="service-summary-label">Total Members</span>
+              <strong id="gmcTotalMembers">6</strong>
+              <p>Volunteers listed in this batch.</p>
+            </article>
+            <article class="service-summary-card">
+              <span class="service-summary-label">Location</span>
+              <strong>Thimphu</strong>
+              <p>Primary residence and service base.</p>
+            </article>
+            <article class="service-summary-card">
+              <span class="service-summary-label">Batch</span>
+              <strong>5th GMC</strong>
+              <p>Current visible volunteer batch.</p>
+            </article>
+          </div>
+          <div class="table-wrap top-gap">
+            <table class="service-table">
+              <thead>
+                <tr>
+                  <th>Sl. No.</th>
+                  <th>Name</th>
+                  <th>Post Held on Gongzhu</th>
+                  <th>Residence</th>
+                  <th>Age</th>
+                  <th>Remarks</th>
+                  <th>Action</th>
+                </tr>
+              </thead>
+              <tbody id="gmcDutyTableBody">
+                <tr data-name="Dasho Zanglay Drukpa, chairman" data-post="Health Minister" data-residence="Thimphu" data-cid="10903000774" data-age="74" data-mobile="17111880" data-email="" data-remarks="--">
+                  <td>1</td>
+                  <td>Dasho Zanglay Drukpa, chairman</td>
+                  <td>Health Minister</td>
+                  <td>Thimphu</td>
+                  <td>74</td>
+                  <td>--</td>
+                  <td><button class="btn btn-outline service-view-btn" type="button">View</button></td>
+                </tr>
+                <tr data-name="Dasho Kunzang Wangdi, secretary" data-post="Member, RRAC" data-residence="Thimphu" data-cid="11410008663" data-age="74" data-mobile="17602000" data-email="dashokunzang@gmail.com" data-remarks="--">
+                  <td>2</td>
+                  <td>Dasho Kunzang Wangdi, secretary</td>
+                  <td>Member, RRAC</td>
+                  <td>Thimphu</td>
+                  <td>74</td>
+                  <td>--</td>
+                  <td><button class="btn btn-outline service-view-btn" type="button">View</button></td>
+                </tr>
+                <tr data-name="Aum Pem Tandi" data-post="Propietor Sunshine School" data-residence="Thimphu" data-cid="10808001324" data-age="71" data-mobile="17747451" data-email="pemtandi @gmail.com" data-remarks="Spouce of Kunzang Wangdi">
+                  <td>3</td>
+                  <td>Aum Pem Tandi</td>
+                  <td>Propietor Sunshine School</td>
+                  <td>Thimphu</td>
+                  <td>71</td>
+                  <td>Spouce of Kunzang Wangdi</td>
+                  <td><button class="btn btn-outline service-view-btn" type="button">View</button></td>
+                </tr>
+                <tr data-name="Dasho ugen Chewan, treasurer" data-post="Chairman, DHI" data-residence="Thimphu" data-cid="11107001106" data-age="70" data-mobile="17603693" data-email="Ugenchewang1955@gmail.com" data-remarks="--">
+                  <td>4</td>
+                  <td>Dasho ugen Chewan, treasurer</td>
+                  <td>Chairman, DHI</td>
+                  <td>Thimphu</td>
+                  <td>70</td>
+                  <td>--</td>
+                  <td><button class="btn btn-outline service-view-btn" type="button">View</button></td>
+                </tr>
+                <tr data-name="Dasho Yeshey Wangdi, ex treasurer" data-post="Secretary" data-residence="Thimphu" data-cid="10710000560" data-age="67" data-mobile="17640974" data-email="ywangdue@gmail.com" data-remarks="--">
+                  <td>5</td>
+                  <td>Dasho Yeshey Wangdi, ex treasurer</td>
+                  <td>Secretary</td>
+                  <td>Thimphu</td>
+                  <td>67</td>
+                  <td>--</td>
+                  <td><button class="btn btn-outline service-view-btn" type="button">View</button></td>
+                </tr>
+                <tr data-name="Phuntsho Tenzin" data-post="--" data-residence="--" data-cid="12603003348" data-age="30" data-mobile="" data-email="" data-remarks="Son of Lyonpo Zanglay Dukpa">
+                  <td>6</td>
+                  <td>Phuntsho Tenzin</td>
+                  <td>--</td>
+                  <td>--</td>
+                  <td>30</td>
+                  <td>Son of Lyonpo Zanglay Dukpa</td>
+                  <td><button class="btn btn-outline service-view-btn" type="button">View</button></td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+          <div class="service-list-card">
+            <p><strong>Remarks</strong></p>
+            <p>
+              Accompanying the Chairperson, Dasho Dr. Gado Tshering, and the seven members led by
+              the Executive Committee of the Nyikelm Gongzhu Tshogpa, I, as the incoming
+              Secretary-elect and in the uniform of a member of the Three Pillars of the Kingdom,
+              the De-Suung, had the unforgettable honour of representing all retired Red Scarf
+              Officers of the Kingdom, both living and departed, in volunteering for the Third GMC
+              Volunteer Service, even if only through a token physical contribution to the
+              history-making project envisioned from the Palden Drukpai Serthri.
+            </p>
+            <p>
+              The representatives returned humbled by the compassion and honour showered upon the
+              group by His Majesty and the GMC.
+            </p>
+            <p>
+              The Nyikelm Gongzhu Tshogpa rededicates itself to continued service to the Nation.
+            </p>
+          </div>
+        </article>
+
+        <article class="card elevated-card top-gap service-batch hidden" data-batch="desuup-list">
+          <p class="eyebrow">List Two</p>
+          <h2 class="section-title">List of NGT De-Suup</h2>
+          <div class="service-list-card">
+            <p><strong>Status:</strong> List to be updated</p>
+            <p class="muted">Add official names or deployment details here when available.</p>
+          </div>
+        </article>
+      </div>
+    </section>
+  </main>
+
+  <dialog id="serviceProfileModal" class="profile-modal">
+    <article>
+      <h2>Service Profile</h2>
+      <div id="serviceProfileContent"></div>
+      <button class="btn top-gap" id="closeServiceProfile" type="button">Close</button>
+    </article>
+  </dialog>
+
+  <footer class="site-footer">
+    <div class="container footer-wrap">
+      <p>Nyikem Gongzhu Tshogpa (NGT) | Kingdom of Bhutan</p>
+      <button id="langToggle" class="lang-btn" type="button">Dzongkha Placeholder</button>
+    </div>
+  </footer>
+
+  <script src="./members-data.js" defer></script>
+  <script src="./app.js" defer></script>
+</body>
+</html>
