@@ -1,0 +1,95 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>NGT Search</title>
+  <link rel="stylesheet" href="./styles.css" />
+</head>
+<body data-page="search">
+  <header class="site-header">
+    <div class="container nav-wrap">
+      <a class="brand" href="index.html">
+        <img class="brand-mark" src="./NGT img.png" alt="Nyikem Gongzhu Tshogpa logo" />
+        <span>Nyikem Gongzhu Tshogpa</span>
+      </a>
+      <button class="menu-toggle" aria-label="Toggle menu">Menu</button>
+      <nav class="main-nav">
+        <div class="nav-search" id="navSearch">
+          <button class="nav-search-toggle" id="globalSearchToggle" type="button" aria-label="Open search" aria-expanded="false">
+            <svg aria-hidden="true" viewBox="0 0 24 24" class="nav-search-icon">
+              <circle cx="11" cy="11" r="6" fill="none" stroke="currentColor" stroke-width="2"></circle>
+              <path d="M16 16L21 21" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"></path>
+            </svg>
+          </button>
+          <form class="nav-search-panel hidden" id="globalSearchForm">
+            <input id="globalSearchInput" type="search" placeholder="Search all pages" aria-label="Search all pages" />
+          </form>
+        </div>
+        <a href="index.html">Home</a>
+        <a href="about.html">About</a>
+        <a href="members.html">Members</a>
+        <a href="services.html">Services</a>
+        <a href="news.html">News & Events</a>
+        <a href="contact.html">Contact</a>
+      </nav>
+    </div>
+  </header>
+
+  <main>
+    <section class="page-hero">
+      <div class="container">
+        <div class="page-hero-card">
+          <p class="eyebrow">Search</p>
+          <h1 id="searchQueryHeading">Search members and announcements</h1>
+          <p id="searchResultCount">Enter a keyword to explore members and announcements.</p>
+        </div>
+      </div>
+    </section>
+
+    <section class="section section-tight">
+      <div class="container">
+        <div class="card">
+          <form class="search-page-form" id="searchPageForm">
+            <input id="searchPageInput" type="search" placeholder="Search by member name, ID, or announcement keyword" aria-label="Search site records" />
+            <button class="btn btn-primary" type="submit">Search</button>
+          </form>
+        </div>
+      </div>
+    </section>
+
+    <section class="section">
+      <div class="container">
+        <div class="search-results-grid" id="searchResultsGrid"></div>
+      </div>
+    </section>
+  </main>
+
+  <footer class="site-footer">
+    <div class="container footer-grid">
+      <div>
+        <p class="footer-title">Nyikem Gongzhu Tshogpa</p>
+        <p class="footer-copy">A platform for retired Red Scarf officers to stay connected through service, unity, and Bhutanese values.</p>
+      </div>
+      <div>
+        <p class="footer-title">Quick Links</p>
+        <div class="footer-links">
+          <a href="about.html">About</a>
+          <a href="members.html">Members</a>
+          <a href="services.html">Services</a>
+          <a href="news.html">News & Events</a>
+        </div>
+      </div>
+      <div>
+        <p class="footer-title">Contact</p>
+        <p class="footer-copy">Kingdom of Bhutan</p>
+        <p class="footer-copy">Official NGT web portal</p>
+        <button id="langToggle" class="lang-btn" type="button">Dzongkha Placeholder</button>
+      </div>
+    </div>
+  </footer>
+
+  <script src="./members-data.js" defer></script>
+  <script src="./app.js" defer></script>
+</body>
+</html>
