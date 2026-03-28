@@ -1653,9 +1653,9 @@ hr {
 
   .nav-wrap {
     gap: 1.1rem;
-    min-height: 96px;
-    padding-top: 0.45rem;
-    padding-bottom: 0.45rem;
+    min-height: 78px;
+    padding-top: 0;
+    padding-bottom: 0;
   }
 
   .brand {
@@ -1677,7 +1677,7 @@ hr {
     position: absolute;
     left: 4%;
     right: 4%;
-    top: 92px;
+    top: 78px;
     gap: 0.45rem;
     padding: 1rem;
     border-radius: 20px;
@@ -1721,6 +1721,7 @@ hr {
     padding-top: 0;
     padding-bottom: 0;
     background: #24170a;
+    margin-top: 0;
   }
 
   .hero::before,
@@ -1733,6 +1734,7 @@ hr {
     padding-top: 0;
     padding-bottom: 0;
     background: transparent;
+    margin-top: 0;
   }
 
   .hero-slide {
