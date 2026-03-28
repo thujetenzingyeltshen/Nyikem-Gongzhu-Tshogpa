@@ -1718,6 +1718,11 @@ hr {
     background: #24170a;
   }
 
+  .hero::before,
+  .hero::after {
+    display: none;
+  }
+
   .hero-slider {
     min-height: auto;
     padding-top: 0;
@@ -1726,14 +1731,22 @@ hr {
   }
 
   .hero-slide {
+    position: relative;
     min-height: auto;
-    background-color: #24170a;
+    background: #24170a !important;
+  }
+
+  .hero-slide::before {
+    content: "";
+    position: absolute;
+    inset: 0 0 auto 0;
+    height: min(80vw, 430px);
     background-image:
-      linear-gradient(180deg, rgba(0, 0, 0, 0.04) 0, rgba(0, 0, 0, 0.04) 42vw, rgba(36, 23, 10, 0.94) 42vw, rgba(36, 23, 10, 0.98) 100%),
-      var(--hero-image, url("./NGT img.png")) !important;
-    background-size: 100% 100%, 100% auto !important;
-    background-position: center top, center top !important;
-    background-repeat: no-repeat, no-repeat !important;
+      linear-gradient(180deg, rgba(0, 0, 0, 0.04), rgba(0, 0, 0, 0.18)),
+      var(--hero-image, url("./NGT img.png"));
+    background-size: 100% 100%, 100% auto;
+    background-position: center top, center top;
+    background-repeat: no-repeat, no-repeat;
   }
 
   .hero-stage {
