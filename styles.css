@@ -1642,6 +1642,11 @@ hr {
 }
 
 @media (max-width: 760px) {
+  .site-header {
+    border-bottom: 0;
+    box-shadow: none;
+  }
+
   .container {
     width: min(100% - 2rem, 1140px);
   }
