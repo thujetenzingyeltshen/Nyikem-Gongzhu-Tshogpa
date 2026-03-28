@@ -1722,19 +1722,13 @@ hr {
   .hero-slide {
     min-height: auto;
     background-color: #24170a;
+    background:
+      linear-gradient(90deg, rgba(0, 0, 0, 0.56), rgba(0, 0, 0, 0.18)),
+      linear-gradient(120deg, rgba(255, 215, 0, 0.08), rgba(255, 140, 0, 0.08)),
+      var(--hero-image, url("./NGT img.png")) !important;
     background-size: cover, cover, 100% auto !important;
-    background-position: center, center, center top;
-    background-repeat: no-repeat, no-repeat, no-repeat;
-  }
-
-  .hero-slide[data-theme="unity"] {
-    background-position: center, center, center top;
-    background-size: cover, cover, 100% auto !important;
-  }
-
-  .hero-slide[data-theme="heritage"] {
-    background-position: center, center, center top;
-    background-size: cover, cover, 100% auto !important;
+    background-position: center, center, center top !important;
+    background-repeat: no-repeat, no-repeat, no-repeat !important;
   }
 
   .hero-stage {
