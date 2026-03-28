@@ -1727,6 +1727,16 @@ hr {
     background-repeat: no-repeat, no-repeat, no-repeat;
   }
 
+  .hero-slide[data-theme="unity"] {
+    background-position: center, center, center top;
+    background-size: cover, cover, 100% auto !important;
+  }
+
+  .hero-slide[data-theme="heritage"] {
+    background-position: center, center, center top;
+    background-size: cover, cover, 100% auto !important;
+  }
+
   .hero-stage {
     flex-direction: column;
     align-items: start;

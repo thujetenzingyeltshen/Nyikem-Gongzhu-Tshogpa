@@ -296,7 +296,7 @@ function initHomePage() {
   window.setInterval(() => {
     currentSlide = (currentSlide + 1) % slides.length;
     renderHeroSlide(currentSlide);
-  }, 7000);
+  }, 9000);
 }
 
 function initSearchPage() {
