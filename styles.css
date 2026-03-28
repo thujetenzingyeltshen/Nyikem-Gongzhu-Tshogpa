@@ -1846,7 +1846,7 @@ hr {
   .footer-grid,
   .section-head {
     align-items: start;
-    gap: 0.9rem;
+    gap: 0.65rem;
   }
 
   .footer-wrap {
@@ -1854,8 +1854,21 @@ hr {
   }
 
   .footer-grid {
-    padding-top: 2.2rem;
-    padding-bottom: 2.2rem;
+    gap: 0.8rem;
+    padding-top: 1.5rem;
+    padding-bottom: 1.5rem;
+  }
+
+  .footer-title {
+    margin-bottom: 0.35rem;
+  }
+
+  .footer-copy {
+    margin-bottom: 0.25rem;
+  }
+
+  .footer-links {
+    gap: 0.25rem;
   }
 
   th,
