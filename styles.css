@@ -1828,3 +1828,56 @@ hr {
     padding: 0.2rem 0;
   }
 }
+
+@media (max-width: 768px) {
+  .container {
+    width: 100%;
+    padding-left: 20px;
+    padding-right: 20px;
+  }
+
+  h1 {
+    font-size: 28px;
+  }
+
+  p,
+  li,
+  input,
+  select,
+  textarea,
+  button {
+    font-size: 16px;
+  }
+
+  .hero {
+    padding: 60px 0;
+  }
+
+  .hero h1 {
+    font-size: 32px;
+    line-height: 1.2;
+  }
+
+  .card,
+  .page-hero-card,
+  .ribbon-card,
+  .impact-card,
+  .announcement-item,
+  .overview-card,
+  .service-summary-card,
+  .contact-card,
+  .contact-detail-item {
+    padding: 20px;
+    margin-bottom: 20px;
+  }
+
+  .hero-actions .btn,
+  .form-actions .btn,
+  .search-page-form .btn {
+    width: 100%;
+  }
+
+  .section {
+    margin-bottom: 40px;
+  }
+}
