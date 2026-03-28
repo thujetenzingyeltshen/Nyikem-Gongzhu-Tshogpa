@@ -1717,30 +1717,31 @@ hr {
     min-height: auto;
     padding-top: 0;
     padding-bottom: 0;
+    background: transparent;
   }
 
   .hero-slide {
     min-height: auto;
-    background-color: #24170a;
-    background:
-      linear-gradient(90deg, rgba(0, 0, 0, 0.56), rgba(0, 0, 0, 0.18)),
-      linear-gradient(120deg, rgba(255, 215, 0, 0.08), rgba(255, 140, 0, 0.08)),
+    background-color: #1b1207;
+    background-image:
+      linear-gradient(180deg, rgba(0, 0, 0, 0.08) 0, rgba(0, 0, 0, 0.08) 48vw, rgba(18, 12, 5, 0.94) 48vw, rgba(18, 12, 5, 0.98) 100%),
       var(--hero-image, url("./NGT img.png")) !important;
-    background-size: cover, cover, 100% auto !important;
-    background-position: center, center, center top !important;
-    background-repeat: no-repeat, no-repeat, no-repeat !important;
+    background-size: 100% 100%, 100% auto !important;
+    background-position: center top, center top !important;
+    background-repeat: no-repeat, no-repeat !important;
   }
 
   .hero-stage {
     flex-direction: column;
     align-items: start;
     gap: 1rem;
-    padding-top: min(92vw, 500px);
+    padding-top: min(86vw, 470px);
     padding-bottom: 3rem;
   }
 
   .hero-copy {
     max-width: 100%;
+    width: 100%;
     padding: 1.2rem 1.1rem 1.2rem;
   }
 
