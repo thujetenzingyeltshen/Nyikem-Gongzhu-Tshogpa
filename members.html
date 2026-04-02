@@ -4,6 +4,8 @@
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>NGT Member Records</title>
+  <meta name="description" content="Browse the NGT member directory with structured member records and service information." />
+  <link rel="icon" href="./NGT-logo-small.png" />
   <link rel="stylesheet" href="./styles.css" />
 </head>
 <body data-page="members">
@@ -61,15 +63,25 @@
             <div>
               <p class="eyebrow">Directory</p>
               <h2 class="section-title">Member Register</h2>
+              <p id="memberResultCount" class="muted">Loading member records.</p>
             </div>
           </div>
           <div class="table-tools member-tools">
             <label class="search-field" for="memberSearch">
               <span class="search-icon" aria-hidden="true">&#128269;</span>
-              <input type="text" id="memberSearch" placeholder="Search by name or ID" />
+              <input type="text" id="memberSearch" placeholder="Search by name, ID, address, or last post" />
             </label>
             <select id="yearFilter">
               <option value="">All Joined Years</option>
+            </select>
+            <select id="nyikemFilter">
+              <option value="">All Nyikem Years</option>
+            </select>
+            <select id="memberSort">
+              <option value="name-asc">Sort by Name</option>
+              <option value="joined-desc">Newest Joined Year</option>
+              <option value="nyikem-desc">Newest Nyikem Year</option>
+              <option value="serial-asc">Sort by Serial ID</option>
             </select>
           </div>
 
@@ -103,7 +115,8 @@
 
   <footer class="site-footer">
     <div class="container footer-grid">
-      <div>
+      <div class="footer-brand">
+        <img class="footer-brand-logo" src="./NGT-logo-small.png" alt="Nyikem Gongzhu Tshogpa logo" width="120" height="97" loading="lazy" decoding="async" />
         <p class="footer-title">Nyikem Gongzhu Tshogpa</p>
         <p class="footer-copy">A platform for retired Red Scarf officers to stay connected through service, unity, and Bhutanese values.</p>
       </div>
@@ -120,11 +133,13 @@
         <p class="footer-title">Contact</p>
         <p class="footer-copy">Kingdom of Bhutan</p>
         <p class="footer-copy">Official NGT web portal</p>
-        <button id="langToggle" class="lang-btn" type="button">Dzongkha Placeholder</button>
+        <button id="langToggle" class="lang-btn" type="button">Dzongkha Coming Soon</button>
       </div>
     </div>
+    <div class="footer-bottom">&copy; 2026 Nyikem Gongzhu Tshogpa | Kingdom of Bhutan</div>
   </footer>
 
+  <script src="./site-content.js" defer></script>
   <script src="./members-data.js" defer></script>
   <script src="./app.js" defer></script>
 </body>

@@ -4,6 +4,8 @@
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>NGT | Nyikem Gongzhu Tshogpa</title>
+  <meta name="description" content="Official website of Nyikem Gongzhu Tshogpa with member records, services, announcements, and contact information." />
+  <link rel="icon" href="./NGT-logo-small.png" />
   <link rel="preload" as="image" href="./NGT-logo-small.png" />
   <link rel="stylesheet" href="./styles.css" />
 </head>
@@ -59,11 +61,36 @@
               </p>
               <div class="hero-actions">
                 <a class="btn btn-primary" href="members.html">Member Records</a>
-                <a class="btn btn-outline" href="about.html">Learn More</a>
+                <a class="btn btn-outline" href="news.html">Latest Updates</a>
               </div>
             </div>
           </div>
         </div>
+    </section>
+
+    <section class="section section-tight">
+      <div class="container hero-quick-row">
+        <a class="quick-tile" href="news.html">
+          <span class="quick-tile-icon">01</span>
+          <span class="quick-tile-label">Latest Update<br /><small id="quickUpdateLabel">No updates</small></span>
+        </a>
+        <a class="quick-tile" href="members.html">
+          <span class="quick-tile-icon">02</span>
+          <span class="quick-tile-label">Browse Member Directory</span>
+        </a>
+        <a class="quick-tile" href="search.html">
+          <span class="quick-tile-icon">03</span>
+          <span class="quick-tile-label">Search Records</span>
+        </a>
+        <a class="quick-tile" href="services.html">
+          <span class="quick-tile-icon">04</span>
+          <span class="quick-tile-label">View Services</span>
+        </a>
+        <a class="quick-tile" href="contact.html">
+          <span class="quick-tile-icon">05</span>
+          <span class="quick-tile-label">Contact Secretariat</span>
+        </a>
+      </div>
     </section>
 
     <section class="section">
@@ -122,12 +149,13 @@
     <section class="section section-tight">
       <div class="container content-grid">
         <article class="card elevated-card">
-          <p class="eyebrow">Mandate</p>
-          <h2 class="section-title">Mission in Service of Tsa-Wa-Sum</h2>
+          <p class="eyebrow">Priority Update</p>
+          <p class="muted" id="featuredAnnouncementMeta">Official update</p>
+          <h2 class="section-title" id="featuredAnnouncementTitle">Loading latest announcement</h2>
           <p>
-            To serve <strong>Tsa-Wa-Sum</strong> with loyalty and dignity by strengthening unity among retired
-            Nyikem recipients and continuing our service to His Majesty, Country, and People.
+            <span id="featuredAnnouncementBody">Please wait while the latest official update is loaded.</span>
           </p>
+          <a class="btn btn-primary" href="news.html">Read All Official Notices</a>
         </article>
         <article class="card elevated-card">
           <p class="eyebrow">Access</p>
@@ -158,7 +186,8 @@
 
   <footer class="site-footer">
     <div class="container footer-grid">
-      <div>
+      <div class="footer-brand">
+        <img class="footer-brand-logo" src="./NGT-logo-small.png" alt="Nyikem Gongzhu Tshogpa logo" width="120" height="97" loading="lazy" decoding="async" />
         <p class="footer-title">Nyikem Gongzhu Tshogpa</p>
         <p class="footer-copy">A platform for retired Red Scarf officers to stay connected through service, unity, and Bhutanese values.</p>
       </div>
@@ -175,11 +204,13 @@
         <p class="footer-title">Contact</p>
         <p class="footer-copy">Kingdom of Bhutan</p>
         <p class="footer-copy">Official NGT web portal</p>
-        <button id="langToggle" class="lang-btn" type="button">Dzongkha Placeholder</button>
+        <button id="langToggle" class="lang-btn" type="button">Dzongkha Coming Soon</button>
       </div>
     </div>
+    <div class="footer-bottom">&copy; 2026 Nyikem Gongzhu Tshogpa | Kingdom of Bhutan</div>
   </footer>
 
+  <script src="./site-content.js" defer></script>
   <script src="./members-data.js" defer></script>
   <script src="./app.js" defer></script>
 </body>

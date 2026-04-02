@@ -4,15 +4,10 @@
 const STORAGE_KEYS = {
   members: "ngt_members",
   announcements: "ngt_announcements",
-  documents: "ngt_documents",
-  contact: "ngt_contact_messages",
-  admin: "ngt_admin_auth"
+  documents: "ngt_documents"
 };
 
-const ADMIN_CREDENTIAL = {
-  username: "admin",
-  password: "ngt@2026"
-};
+const SUPPORT_EMAIL = "ngt-secretariat@gmail.com";
 
 const SITE_PAGE_INDEX = [
   {
@@ -75,6 +70,79 @@ const SITE_PAGE_INDEX = [
 
 const page = document.body.dataset.page || "";
 
+function getSiteContent() {
+  return window.NGT_SITE_CONTENT || {};
+}
+
+function getConfiguredAnnouncements() {
+  const announcements = getSiteContent().announcements;
+  return Array.isArray(announcements) ? announcements : [];
+}
+
+function getConfiguredDocuments() {
+  const documents = getSiteContent().documents;
+  return Array.isArray(documents) ? documents : [];
+}
+
+function escapeHTML(value) {
+  return String(value ?? "")
+    .replace(/&/g, "&amp;")
+    .replace(/</g, "&lt;")
+    .replace(/>/g, "&gt;")
+    .replace(/"/g, "&quot;")
+    .replace(/'/g, "&#39;");
+}
+
+function formatDisplayDate(value) {
+  const parsed = new Date(value);
+  if (Number.isNaN(parsed.getTime())) {
+    return String(value ?? "");
+  }
+
+  return parsed.toLocaleDateString(undefined, {
+    year: "numeric",
+    month: "short",
+    day: "numeric"
+  });
+}
+
+function sanitizeDocumentHref(value) {
+  const href = String(value ?? "").trim();
+  if (!href) return "";
+
+  if (/^data:application\/pdf;base64,/i.test(href)) {
+    return href;
+  }
+
+  if (/^(?:\.\/|\.\.\/|\/)?[A-Za-z0-9 _./-]+\.pdf$/i.test(href)) {
+    return href;
+  }
+
+  return "";
+}
+
+function getReadonlyDocuments() {
+  const staticDocs = getConfiguredDocuments().map((doc) => ({
+    title: doc.title,
+    fileName: doc.fileName,
+    href: sanitizeDocumentHref(doc.href),
+    uploadedAt: doc.uploadedAt || "",
+    source: "static"
+  })).filter((doc) => doc.href);
+
+  const storedDocs = getData(STORAGE_KEYS.documents, [])
+    .map((doc) => ({
+      title: doc.title,
+      fileName: doc.fileName,
+      href: sanitizeDocumentHref(doc.dataUrl),
+      uploadedAt: doc.uploadedAt || "",
+      source: "browser"
+    }))
+    .filter((doc) => doc.href);
+
+  return [...staticDocs, ...storedDocs];
+}
+
 function getData(key, fallback = []) {
   try {
     const raw = localStorage.getItem(key);
@@ -89,31 +157,10 @@ function setData(key, value) {
 }
 
 function setupDefaults() {
-  if (!localStorage.getItem(STORAGE_KEYS.announcements)) {
-    setData(STORAGE_KEYS.announcements, [
-      {
-        id: crypto.randomUUID(),
-        title: "Annual General Meeting Notice",
-        date: "2026-04-15",
-        body: "All registered members are requested to attend the AGM in Thimphu."
-      },
-      {
-        id: crypto.randomUUID(),
-        title: "Regional Service Initiative",
-        date: "2026-05-02",
-        body: "NGT regional coordinators will lead volunteer activities in all dzongkhags."
-      }
-    ]);
-  }
-
   const seededMembers = Array.isArray(window.NGT_MEMBERS_SEED) ? window.NGT_MEMBERS_SEED : [];
   const existingMembers = getData(STORAGE_KEYS.members, []);
   if (!localStorage.getItem(STORAGE_KEYS.members) || (!existingMembers.length && seededMembers.length)) {
     setData(STORAGE_KEYS.members, seededMembers);
-  }
-
-  if (!localStorage.getItem(STORAGE_KEYS.documents)) {
-    setData(STORAGE_KEYS.documents, []);
   }
 }
 
@@ -130,24 +177,78 @@ function setupLanguagePlaceholder() {
   const btn = document.getElementById("langToggle");
   if (!btn) return;
 
-  let dzongkhaMode = false;
-  btn.addEventListener("click", () => {
-    dzongkhaMode = !dzongkhaMode;
-    btn.textContent = dzongkhaMode ? "English" : "Dzongkha Placeholder";
-    alert(
-      dzongkhaMode
-        ? "Dzongkha mode placeholder enabled."
-        : "English mode enabled."
-    );
-  });
+  btn.textContent = "Dzongkha Coming Soon";
+  btn.disabled = true;
+  btn.setAttribute("aria-disabled", "true");
+  btn.title = "Dzongkha translation is not published yet.";
 }
 
 /* ------------------------------
    Announcement Helpers
 ------------------------------ */
 function getAnnouncementsSorted() {
-  const announcements = getData(STORAGE_KEYS.announcements, []);
-  return announcements.sort((a, b) => new Date(b.date) - new Date(a.date));
+  const configuredAnnouncements = getConfiguredAnnouncements();
+  const announcements = configuredAnnouncements.length
+    ? configuredAnnouncements
+    : getData(STORAGE_KEYS.announcements, []);
+  return [...announcements].sort((a, b) => new Date(b.date) - new Date(a.date));
+}
+
+function escapeRegExp(value) {
+  return value.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+}
+
+function getSearchTokens(term) {
+  return term
+    .trim()
+    .toLowerCase()
+    .split(/\s+/)
+    .filter(Boolean)
+    .slice(0, 5);
+}
+
+function getMatchScore(values, term) {
+  const normalizedTerm = term.trim().toLowerCase();
+  const tokens = getSearchTokens(term);
+  let score = 0;
+
+  values.filter(Boolean).forEach((value) => {
+    const text = String(value).toLowerCase();
+    if (!text) return;
+
+    if (text === normalizedTerm) score += 160;
+    if (text.startsWith(normalizedTerm)) score += 110;
+    if (text.includes(normalizedTerm)) score += 80;
+
+    tokens.forEach((token) => {
+      if (text === token) score += 40;
+      else if (text.startsWith(token)) score += 24;
+      else if (text.includes(token)) score += 14;
+    });
+  });
+
+  return score;
+}
+
+function highlightMatch(text, term) {
+  const rawText = String(text ?? "");
+  const tokens = getSearchTokens(term);
+  if (!rawText || !tokens.length) return escapeHTML(rawText);
+
+  const pattern = new RegExp(`(${tokens.map(escapeRegExp).join("|")})`, "ig");
+  return rawText
+    .split(pattern)
+    .map((part) => {
+      if (!part) return "";
+      const isMatch = tokens.some((token) => token === part.toLowerCase());
+      return isMatch ? `<mark>${escapeHTML(part)}</mark>` : escapeHTML(part);
+    })
+    .join("");
+}
+
+function getSearchSnippet(values, term) {
+  const source = values.find((value) => String(value ?? "").toLowerCase().includes(term.toLowerCase())) || values.find(Boolean) || "";
+  return highlightMatch(source, term);
 }
 
 function renderAnnouncementCard(item) {
@@ -155,10 +256,10 @@ function renderAnnouncementCard(item) {
     <article class="announcement-item">
       <div class="announcement-meta">
         <span class="badge">New</span>
-        <p class="muted">${item.date}</p>
+        <p class="muted">${escapeHTML(formatDisplayDate(item.date))}</p>
       </div>
-      <h3>${item.title}</h3>
-      <p>${item.body}</p>
+      <h3>${escapeHTML(item.title)}</h3>
+      <p>${escapeHTML(item.body)}</p>
     </article>
   `;
 }
@@ -190,25 +291,65 @@ function findSiteSearchResults(term) {
     return { members: [], announcements: [], pages: [], documents: [] };
   }
 
-  const members = getData(STORAGE_KEYS.members, []).filter((member) =>
-    [member.fullName, member.serialId, member.lastPost, member.knowledge]
-      .filter(Boolean)
-      .some((value) => value.toLowerCase().includes(normalized))
-  );
+  const members = getData(STORAGE_KEYS.members, [])
+    .map((member) => {
+      const values = [member.fullName, member.serialId, member.lastPost, member.knowledge, member.address];
+      const score = getMatchScore(values, normalized);
+      return score
+        ? {
+            ...member,
+            score,
+            snippet: getSearchSnippet([member.lastPost, member.knowledge, member.address, member.serialId], normalized)
+          }
+        : null;
+    })
+    .filter(Boolean)
+    .sort((a, b) => b.score - a.score || String(a.fullName).localeCompare(String(b.fullName)));
 
-  const announcements = getAnnouncementsSorted().filter((item) =>
-    [item.title, item.body].some((value) => value.toLowerCase().includes(normalized))
-  );
+  const announcements = getAnnouncementsSorted()
+    .map((item) => {
+      const values = [item.title, item.body];
+      const score = getMatchScore(values, normalized);
+      return score
+        ? {
+            ...item,
+            score,
+            snippet: getSearchSnippet([item.body, item.title], normalized)
+          }
+        : null;
+    })
+    .filter(Boolean)
+    .sort((a, b) => b.score - a.score || new Date(b.date) - new Date(a.date));
 
-  const pages = SITE_PAGE_INDEX.filter((pageEntry) =>
-    [pageEntry.title, pageEntry.summary, pageEntry.keywords].some((value) =>
-      value.toLowerCase().includes(normalized)
-    )
-  );
+  const pages = SITE_PAGE_INDEX
+    .map((pageEntry) => {
+      const values = [pageEntry.title, pageEntry.summary, pageEntry.keywords];
+      const score = getMatchScore(values, normalized);
+      return score
+        ? {
+            ...pageEntry,
+            score,
+            snippet: getSearchSnippet([pageEntry.summary, pageEntry.keywords], normalized)
+          }
+        : null;
+    })
+    .filter(Boolean)
+    .sort((a, b) => b.score - a.score || String(a.title).localeCompare(String(b.title)));
 
-  const documents = getData(STORAGE_KEYS.documents, []).filter((doc) =>
-    [doc.title, doc.fileName].filter(Boolean).some((value) => value.toLowerCase().includes(normalized))
-  );
+  const documents = getReadonlyDocuments()
+    .map((doc) => {
+      const values = [doc.title, doc.fileName];
+      const score = getMatchScore(values, normalized);
+      return score
+        ? {
+            ...doc,
+            score,
+            snippet: getSearchSnippet([doc.title, doc.fileName], normalized)
+          }
+        : null;
+    })
+    .filter(Boolean)
+    .sort((a, b) => b.score - a.score || String(a.title).localeCompare(String(b.title)));
 
   return { members, announcements, pages, documents };
 }
@@ -220,19 +361,41 @@ function initHomePage() {
   const heroSubtitle = document.getElementById("heroSubtitle");
   const heroText = document.getElementById("heroText");
   const heroCaption = document.getElementById("heroCaption");
+  const quickUpdateLabel = document.getElementById("quickUpdateLabel");
+  const featuredAnnouncementMeta = document.getElementById("featuredAnnouncementMeta");
+  const featuredAnnouncementTitle = document.getElementById("featuredAnnouncementTitle");
+  const featuredAnnouncementBody = document.getElementById("featuredAnnouncementBody");
+
+  const items = getAnnouncementsSorted();
+  const featuredAnnouncement = items[0];
+
+  if (quickUpdateLabel) quickUpdateLabel.textContent = featuredAnnouncement ? formatDisplayDate(featuredAnnouncement.date) : "No updates";
+  if (featuredAnnouncementMeta) {
+    featuredAnnouncementMeta.textContent = featuredAnnouncement
+      ? `Latest official update | ${formatDisplayDate(featuredAnnouncement.date)}`
+      : "Official updates will appear here";
+  }
+  if (featuredAnnouncementTitle) {
+    featuredAnnouncementTitle.textContent = featuredAnnouncement ? featuredAnnouncement.title : "No announcements published yet";
+  }
+  if (featuredAnnouncementBody) {
+    featuredAnnouncementBody.textContent = featuredAnnouncement
+      ? featuredAnnouncement.body
+      : "Publish announcements in site-content.js to feature them across the homepage and news page.";
+  }
 
   if (wrapper) {
-    const items = getAnnouncementsSorted().slice(0, 3);
-    wrapper.innerHTML = items.length
-      ? items
+    const previewItems = items.slice(0, 3);
+    wrapper.innerHTML = previewItems.length
+      ? previewItems
           .map((item, index) => `
             <article class="announcement-item ${index === 0 ? "announcement-item-featured" : ""}">
               <div class="announcement-meta">
                 <span class="badge">${index === 0 ? "Latest" : "New"}</span>
-                <p class="muted">${item.date}</p>
+                <p class="muted">${escapeHTML(formatDisplayDate(item.date))}</p>
               </div>
-              <h3>${item.title}</h3>
-              <p>${item.body}</p>
+              <h3>${escapeHTML(item.title)}</h3>
+              <p>${escapeHTML(item.body)}</p>
             </article>
           `)
           .join("")
@@ -313,10 +476,10 @@ function initSearchPage() {
     const { members, announcements, pages, documents } = findSiteSearchResults(cleanTerm);
     const total = members.length + announcements.length + pages.length + documents.length;
 
-    queryHeading.textContent = cleanTerm ? `Results for "${cleanTerm}"` : "Search members and announcements";
+    queryHeading.textContent = cleanTerm ? `Results for "${cleanTerm}"` : "Search the NGT website";
     queryCount.textContent = cleanTerm
       ? `${total} result${total === 1 ? "" : "s"} found`
-      : "Enter a keyword to explore members and announcements.";
+      : "Enter a keyword to explore pages, members, announcements, and documents.";
 
     if (!cleanTerm) {
       resultsWrap.innerHTML = `
@@ -329,10 +492,11 @@ function initSearchPage() {
 
     const memberCards = members.map(
       (member) => `
-        <a class="search-result-card" href="members.html">
+        <a class="search-result-card" href="members.html?member=${encodeURIComponent(member.id)}&q=${encodeURIComponent(cleanTerm)}">
           <span class="search-result-type">Member</span>
-          <strong>${member.fullName}</strong>
-          <p>${member.serialId || "--"} | ${member.lastPost || "Member Record"}</p>
+          <strong>${highlightMatch(member.fullName, cleanTerm)}</strong>
+          <p>${escapeHTML(member.serialId || "--")}</p>
+          <p class="search-result-snippet">${member.snippet}</p>
         </a>
       `
     );
@@ -341,8 +505,9 @@ function initSearchPage() {
       (item) => `
         <a class="search-result-card" href="news.html">
           <span class="search-result-type">Announcement</span>
-          <strong>${item.title}</strong>
-          <p>${item.date}</p>
+          <strong>${highlightMatch(item.title, cleanTerm)}</strong>
+          <p>${escapeHTML(formatDisplayDate(item.date))}</p>
+          <p class="search-result-snippet">${item.snippet}</p>
         </a>
       `
     );
@@ -351,26 +516,46 @@ function initSearchPage() {
       (pageEntry) => `
         <a class="search-result-card" href="${pageEntry.href}">
           <span class="search-result-type">${pageEntry.type}</span>
-          <strong>${pageEntry.title}</strong>
-          <p>${pageEntry.summary}</p>
+          <strong>${highlightMatch(pageEntry.title, cleanTerm)}</strong>
+          <p class="search-result-snippet">${pageEntry.snippet}</p>
         </a>
       `
     );
 
     const documentCards = documents.map(
       (doc) => `
-        <a class="search-result-card" href="documents.html">
+        <a class="search-result-card" href="${doc.href || "documents.html"}">
           <span class="search-result-type">Document</span>
-          <strong>${doc.title}</strong>
-          <p>${doc.fileName || "Stored document"}</p>
+          <strong>${highlightMatch(doc.title, cleanTerm)}</strong>
+          <p class="search-result-snippet">${doc.snippet}</p>
         </a>
       `
     );
 
-    const cards = [...pageCards, ...memberCards, ...announcementCards, ...documentCards];
-    resultsWrap.innerHTML = cards.length
-      ? cards.join("")
-      : `<article class="search-empty card"><p>No matching members or announcements found.</p></article>`;
+    const sections = [
+      { title: "Pages", cards: pageCards },
+      { title: "Members", cards: memberCards },
+      { title: "Announcements", cards: announcementCards },
+      { title: "Documents", cards: documentCards }
+    ].filter((section) => section.cards.length);
+
+    resultsWrap.innerHTML = sections.length
+      ? sections
+          .map(
+            (section) => `
+              <section class="search-result-section">
+                <div class="search-section-head">
+                  <h2>${section.title}</h2>
+                  <p>${section.cards.length} match${section.cards.length === 1 ? "" : "es"}</p>
+                </div>
+                <div class="search-section-grid">
+                  ${section.cards.join("")}
+                </div>
+              </section>
+            `
+          )
+          .join("")
+      : `<article class="search-empty card"><p>No matching pages, members, announcements, or documents were found.</p></article>`;
   }
 
   const params = new URLSearchParams(window.location.search);
@@ -420,11 +605,14 @@ function initMembersPage() {
   const tableBody = document.getElementById("memberTableBody");
   const searchInput = document.getElementById("memberSearch");
   const yearFilter = document.getElementById("yearFilter");
+  const nyikemFilter = document.getElementById("nyikemFilter");
+  const sortSelect = document.getElementById("memberSort");
+  const resultCount = document.getElementById("memberResultCount");
   const modal = document.getElementById("profileModal");
   const profileContent = document.getElementById("profileContent");
   const closeProfile = document.getElementById("closeProfile");
 
-  if (!tableBody || !searchInput || !yearFilter || !modal || !profileContent) return;
+  if (!tableBody || !searchInput || !yearFilter || !nyikemFilter || !sortSelect || !resultCount || !modal || !profileContent) return;
 
   const getMembers = () => getData(STORAGE_KEYS.members, []);
 
@@ -432,8 +620,8 @@ function initMembersPage() {
     const className = ["profile-item", extraClass].filter(Boolean).join(" ");
     return `
       <div class="${className}">
-        <span class="profile-label">${label}</span>
-        <p class="profile-value">${value || "--"}</p>
+        <span class="profile-label">${escapeHTML(label)}</span>
+        <p class="profile-value">${escapeHTML(value || "--")}</p>
       </div>
     `;
   }
@@ -441,22 +629,95 @@ function initMembersPage() {
   function populateYearFilter() {
     const years = [...new Set(getMembers().map((m) => m.joinedYear))].sort();
     yearFilter.innerHTML = `<option value="">All Joined Years</option>${years
-      .map((year) => `<option value="${year}">${year}</option>`)
+      .map((year) => `<option value="${escapeHTML(year)}">${escapeHTML(year)}</option>`)
       .join("")}`;
+  }
+
+  function populateNyikemFilter() {
+    const years = [...new Set(getMembers().map((m) => m.nyikemYear).filter(Boolean))].sort((a, b) => Number(b) - Number(a));
+    nyikemFilter.innerHTML = `<option value="">All Nyikem Years</option>${years
+      .map((year) => `<option value="${escapeHTML(year)}">${escapeHTML(year)}</option>`)
+      .join("")}`;
+  }
+
+  function compareMembers(a, b, sortValue) {
+    if (sortValue === "joined-desc") return Number(b.joinedYear || 0) - Number(a.joinedYear || 0);
+    if (sortValue === "nyikem-desc") return Number(b.nyikemYear || 0) - Number(a.nyikemYear || 0);
+    if (sortValue === "serial-asc") return String(a.serialId).localeCompare(String(b.serialId), undefined, { numeric: true });
+    return String(a.fullName).localeCompare(String(b.fullName));
+  }
+
+  function openMemberProfile(memberId) {
+    const selected = getMembers().find((member) => member.id === memberId);
+    if (!selected) return;
+
+    profileContent.innerHTML = `
+      <div class="profile-layout">
+        <section class="profile-header-card">
+          <p class="profile-overline">Member Profile</p>
+          <h2>${escapeHTML(selected.fullName)}</h2>
+          <p class="profile-id">${escapeHTML(selected.serialId)}</p>
+          <p class="profile-header-note">Structured member record for Nyikem Gongzhu Tshogpa.</p>
+        </section>
+
+        <section class="profile-section">
+          <h3>Basic Info</h3>
+          <div class="profile-grid">
+            ${profileField("Service Year", selected.serviceYear)}
+            ${profileField("Nyikem Year", selected.nyikemYear)}
+            ${profileField("Resignation Year", selected.resignationYear)}
+            ${profileField("Joined NGT", selected.joinedYear)}
+          </div>
+        </section>
+
+        <section class="profile-section">
+          <h3>Contact Info</h3>
+          <div class="profile-grid">
+            ${profileField("Phone", selected.phone)}
+            ${profileField("Email", selected.email)}
+            ${profileField("Address", selected.address, "full")}
+          </div>
+        </section>
+
+        <section class="profile-section">
+          <h3>Experience</h3>
+          <div class="profile-grid">
+            ${profileField("Last Post Held", selected.lastPost)}
+            ${profileField("Knowledge / Experience", selected.knowledge, "full")}
+          </div>
+        </section>
+
+        <section class="profile-card-preview">
+          <p class="profile-overline">Member Card</p>
+          <h4>${escapeHTML(selected.fullName)}</h4>
+          <p><strong>${escapeHTML(selected.serialId)}</strong></p>
+          <p class="muted">Retired Nyikem Recipient | Nyikem Gongzhu Tshogpa</p>
+        </section>
+      </div>
+    `;
+    modal.showModal();
   }
 
   function renderTable() {
     const keyword = searchInput.value.trim().toLowerCase();
     const selectedYear = yearFilter.value;
+    const selectedNyikemYear = nyikemFilter.value;
+    const selectedSort = sortSelect.value;
     let members = getMembers();
 
     members = members.filter((m) => {
       const matchesSearch =
-        m.fullName.toLowerCase().includes(keyword) ||
-        m.serialId.toLowerCase().includes(keyword);
+        !keyword ||
+        [m.fullName, m.serialId, m.lastPost, m.address]
+          .filter(Boolean)
+          .some((value) => value.toLowerCase().includes(keyword));
       const matchesYear = !selectedYear || String(m.joinedYear) === selectedYear;
-      return matchesSearch && matchesYear;
+      const matchesNyikemYear = !selectedNyikemYear || String(m.nyikemYear) === selectedNyikemYear;
+      return matchesSearch && matchesYear && matchesNyikemYear;
     });
+
+    members = members.sort((a, b) => compareMembers(a, b, selectedSort));
+    resultCount.textContent = `${members.length} member record${members.length === 1 ? "" : "s"} shown`;
 
     if (!members.length) {
       tableBody.innerHTML = "<tr><td colspan='7'>No members found.</td></tr>";
@@ -467,14 +728,14 @@ function initMembersPage() {
       .map(
         (member) => `
       <tr>
-        <td>${member.serialId}</td>
-        <td>${member.fullName}</td>
-          <td>${member.serviceYear || "--"}</td>
-          <td>${member.nyikemYear || "--"}</td>
-          <td>${member.resignationYear || "--"}</td>
-          <td>${member.joinedYear || "--"}</td>
+        <td>${escapeHTML(member.serialId)}</td>
+        <td>${escapeHTML(member.fullName)}</td>
+          <td>${escapeHTML(member.serviceYear || "--")}</td>
+          <td>${escapeHTML(member.nyikemYear || "--")}</td>
+          <td>${escapeHTML(member.resignationYear || "--")}</td>
+          <td>${escapeHTML(member.joinedYear || "--")}</td>
           <td>
-            <button class="btn" data-action="view" data-id="${member.id}" type="button">View Profile</button>
+            <button class="btn" data-action="view" data-id="${escapeHTML(member.id)}" type="button">View Profile</button>
           </td>
         </tr>
       `
@@ -490,56 +751,8 @@ function initMembersPage() {
     const id = target.dataset.id;
     if (!action || !id) return;
 
-    const members = getMembers();
-    const selected = members.find((m) => m.id === id);
-    if (!selected) return;
-
     if (action === "view") {
-      profileContent.innerHTML = `
-        <div class="profile-layout">
-          <section class="profile-header-card">
-            <p class="profile-overline">Member Profile</p>
-            <h2>${selected.fullName}</h2>
-            <p class="profile-id">${selected.serialId}</p>
-            <p class="profile-header-note">Structured member record for Nyikem Gongzhu Tshogpa.</p>
-          </section>
-
-          <section class="profile-section">
-            <h3>Basic Info</h3>
-            <div class="profile-grid">
-              ${profileField("Service Year", selected.serviceYear)}
-              ${profileField("Nyikem Year", selected.nyikemYear)}
-              ${profileField("Resignation Year", selected.resignationYear)}
-              ${profileField("Joined NGT", selected.joinedYear)}
-            </div>
-          </section>
-
-          <section class="profile-section">
-            <h3>Contact Info</h3>
-            <div class="profile-grid">
-              ${profileField("Phone", selected.phone)}
-              ${profileField("Email", selected.email)}
-              ${profileField("Address", selected.address, "full")}
-            </div>
-          </section>
-
-          <section class="profile-section">
-            <h3>Experience</h3>
-            <div class="profile-grid">
-              ${profileField("Last Post Held", selected.lastPost)}
-              ${profileField("Knowledge / Experience", selected.knowledge, "full")}
-            </div>
-          </section>
-
-          <section class="profile-card-preview">
-            <p class="profile-overline">Member Card</p>
-            <h4>${selected.fullName}</h4>
-            <p><strong>${selected.serialId}</strong></p>
-            <p class="muted">Retired Nyikem Recipient | Nyikem Gongzhu Tshogpa</p>
-          </section>
-        </div>
-      `;
-      modal.showModal();
+      openMemberProfile(id);
     }
     });
 
@@ -547,51 +760,27 @@ function initMembersPage() {
 
   searchInput.addEventListener("input", renderTable);
   yearFilter.addEventListener("change", renderTable);
+  nyikemFilter.addEventListener("change", renderTable);
+  sortSelect.addEventListener("change", renderTable);
 
   populateYearFilter();
+  populateNyikemFilter();
   renderTable();
-}
 
-/* ------------------------------
-   Admin Panel
------------------------------- */
-function isAdminAuthenticated() {
-  return sessionStorage.getItem(STORAGE_KEYS.admin) === "true";
+  const params = new URLSearchParams(window.location.search);
+  const requestedMember = params.get("member");
+  const requestedSearch = params.get("q");
+  if (requestedSearch) searchInput.value = requestedSearch;
+  renderTable();
+  if (requestedMember) {
+    openMemberProfile(requestedMember);
+  }
 }
 
 function initAdminPage() {
-  const loginBox = document.getElementById("loginBox");
-  const adminControls = document.getElementById("adminControls");
-  const loginForm = document.getElementById("adminLoginForm");
-  const logoutBtn = document.getElementById("logoutAdmin");
-  const announcementForm = document.getElementById("announcementForm");
+  const status = document.getElementById("adminStatus");
   const listWrap = document.getElementById("announcementAdminList");
-  const cancelEdit = document.getElementById("cancelAnnouncementEdit");
-
-  if (!loginBox || !adminControls || !loginForm || !announcementForm || !listWrap) return;
-
-  const fields = {
-    editId: document.getElementById("announcementEditId"),
-    title: document.getElementById("announcementTitle"),
-    date: document.getElementById("announcementDate"),
-    body: document.getElementById("announcementBody")
-  };
-
-  function refreshAuthView() {
-    if (isAdminAuthenticated()) {
-      loginBox.classList.add("hidden");
-      adminControls.classList.remove("hidden");
-      renderAdminAnnouncements();
-    } else {
-      loginBox.classList.remove("hidden");
-      adminControls.classList.add("hidden");
-    }
-  }
-
-  function resetAnnouncementForm() {
-    announcementForm.reset();
-    fields.editId.value = "";
-  }
+  if (!status || !listWrap) return;
 
   function renderAdminAnnouncements() {
     const items = getAnnouncementsSorted();
@@ -600,11 +789,9 @@ function initAdminPage() {
           .map(
             (item) => `
       <article class="admin-list-item">
-        <h4>${item.title}</h4>
-        <p class="muted">${item.date}</p>
-        <p>${item.body}</p>
-        <button class="btn btn-outline" data-admin-action="edit" data-id="${item.id}" type="button">Edit</button>
-        <button class="btn btn-outline" data-admin-action="delete" data-id="${item.id}" type="button">Delete</button>
+        <h4>${escapeHTML(item.title)}</h4>
+        <p class="muted">${escapeHTML(formatDisplayDate(item.date))}</p>
+        <p>${escapeHTML(item.body)}</p>
       </article>
     `
           )
@@ -612,171 +799,39 @@ function initAdminPage() {
       : "<p>No announcements available.</p>";
   }
 
-  loginForm.addEventListener("submit", (event) => {
-    event.preventDefault();
-    const user = document.getElementById("adminUser").value.trim();
-    const pass = document.getElementById("adminPass").value;
-
-    if (user === ADMIN_CREDENTIAL.username && pass === ADMIN_CREDENTIAL.password) {
-      sessionStorage.setItem(STORAGE_KEYS.admin, "true");
-      refreshAuthView();
-      return;
-    }
-
-    alert("Invalid username or password.");
-  });
-
-  logoutBtn?.addEventListener("click", () => {
-    sessionStorage.removeItem(STORAGE_KEYS.admin);
-    refreshAuthView();
-  });
-
-  announcementForm.addEventListener("submit", (event) => {
-    event.preventDefault();
-
-    const payload = {
-      title: fields.title.value.trim(),
-      date: fields.date.value,
-      body: fields.body.value.trim()
-    };
-
-    if (!payload.title || !payload.date || !payload.body) {
-      alert("Please complete all announcement fields.");
-      return;
-    }
-
-    const items = getData(STORAGE_KEYS.announcements, []);
-    const editId = fields.editId.value;
-
-    if (editId) {
-      setData(
-        STORAGE_KEYS.announcements,
-        items.map((item) => (item.id === editId ? { ...item, ...payload } : item))
-      );
-    } else {
-      items.push({ id: crypto.randomUUID(), ...payload });
-      setData(STORAGE_KEYS.announcements, items);
-    }
-
-    resetAnnouncementForm();
-    renderAdminAnnouncements();
-  });
-
-  listWrap.addEventListener("click", (event) => {
-    const target = event.target;
-    if (!(target instanceof HTMLElement)) return;
-
-    const action = target.dataset.adminAction;
-    const id = target.dataset.id;
-    if (!action || !id) return;
-
-    const items = getData(STORAGE_KEYS.announcements, []);
-    const selected = items.find((item) => item.id === id);
-    if (!selected) return;
-
-    if (action === "delete") {
-      if (!confirm("Delete this announcement?")) return;
-      setData(
-        STORAGE_KEYS.announcements,
-        items.filter((item) => item.id !== id)
-      );
-      renderAdminAnnouncements();
-      return;
-    }
-
-    if (action === "edit") {
-      fields.editId.value = selected.id;
-      fields.title.value = selected.title;
-      fields.date.value = selected.date;
-      fields.body.value = selected.body;
-      window.scrollTo({ top: 0, behavior: "smooth" });
-    }
-  });
-
-  cancelEdit?.addEventListener("click", resetAnnouncementForm);
-
-  refreshAuthView();
+  status.textContent =
+    "Secure browser-based administration has been disabled in this static build. To update announcements safely, edit site-content.js or connect a real backend with server-side authentication.";
+  renderAdminAnnouncements();
 }
 
 /* ------------------------------
    Documents Page
 ------------------------------ */
 function initDocumentsPage() {
-  const form = document.getElementById("documentForm");
+  const status = document.getElementById("documentStatus");
   const list = document.getElementById("documentList");
-  if (!form || !list) return;
-
-  const titleField = document.getElementById("docTitle");
-  const fileField = document.getElementById("docFile");
+  if (!status || !list) return;
 
   function renderDocuments() {
-    const docs = getData(STORAGE_KEYS.documents, []);
+    const docs = getReadonlyDocuments();
     list.innerHTML = docs.length
       ? docs
           .map(
             (doc) => `
       <article class="doc-item">
-        <h3>${doc.title}</h3>
-        <p class="muted">File: ${doc.fileName}</p>
-        <p class="muted">Uploaded: ${new Date(doc.uploadedAt).toLocaleString()}</p>
-        <a class="btn" href="${doc.dataUrl}" target="_blank" rel="noopener">Open PDF</a>
-        <a class="btn btn-outline" href="${doc.dataUrl}" download="${doc.fileName}">Download</a>
-        <button class="btn btn-outline" type="button" data-doc-delete="${doc.id}">Delete</button>
+        <h3>${escapeHTML(doc.title)}</h3>
+        <p class="muted">File: ${escapeHTML(doc.fileName || "Document")}</p>
+        <p class="muted">Available: ${escapeHTML(doc.uploadedAt ? formatDisplayDate(doc.uploadedAt) : "Published document")}</p>
+        <a class="btn" href="${doc.href}" target="_blank" rel="noopener">Open PDF</a>
+        <a class="btn btn-outline" href="${doc.href}" download="${escapeHTML(doc.fileName || "document.pdf")}">Download</a>
       </article>
     `
           )
           .join("")
-      : "<p>No documents uploaded yet.</p>";
+      : "<p>No documents are published yet.</p>";
   }
-
-  form.addEventListener("submit", (event) => {
-    event.preventDefault();
-    const title = titleField.value.trim();
-    const file = fileField.files?.[0];
-
-    if (!title || !file) {
-      alert("Please provide title and PDF file.");
-      return;
-    }
-
-    if (file.type !== "application/pdf") {
-      alert("Only PDF files are allowed.");
-      return;
-    }
-
-    const reader = new FileReader();
-    reader.onload = () => {
-      const docs = getData(STORAGE_KEYS.documents, []);
-      docs.push({
-        id: crypto.randomUUID(),
-        title,
-        fileName: file.name,
-        dataUrl: String(reader.result),
-        uploadedAt: new Date().toISOString()
-      });
-      setData(STORAGE_KEYS.documents, docs);
-      form.reset();
-      renderDocuments();
-    };
-
-    reader.readAsDataURL(file);
-  });
-
-  list.addEventListener("click", (event) => {
-    const target = event.target;
-    if (!(target instanceof HTMLElement)) return;
-
-    const id = target.dataset.docDelete;
-    if (!id) return;
-
-    if (!confirm("Delete this document?")) return;
-    setData(
-      STORAGE_KEYS.documents,
-      getData(STORAGE_KEYS.documents, []).filter((doc) => doc.id !== id)
-    );
-    renderDocuments();
-  });
-
+  status.textContent =
+    "Web uploads have been disabled in the public static site. Publish PDFs in site-content.js or connect a secure backend so every visitor sees the same vetted documents.";
   renderDocuments();
 }
 
@@ -810,18 +865,10 @@ function initContactPage() {
       return;
     }
 
-    const messages = getData(STORAGE_KEYS.contact, []);
-    messages.push({
-      id: crypto.randomUUID(),
-      name,
-      email,
-      message,
-      createdAt: new Date().toISOString()
-    });
-    setData(STORAGE_KEYS.contact, messages);
-
     form.reset();
-    status.textContent = "Thank you. Your message has been recorded successfully.";
+    status.textContent = "Your email app should open now. If it does not, email ngt-secretariat@gmail.com directly.";
+    window.location.href =
+      `mailto:${encodeURIComponent(SUPPORT_EMAIL)}?subject=${encodeURIComponent(`NGT Website Inquiry from ${name}`)}&body=${encodeURIComponent(`Name: ${name}\nEmail: ${email}\n\nMessage:\n${message}`)}`;
   });
 }
 

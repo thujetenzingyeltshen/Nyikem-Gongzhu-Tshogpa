@@ -4,12 +4,10 @@
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>NGT Admin Panel</title>
+  <meta name="description" content="Administrative overview for the static NGT site." />
+  <meta name="robots" content="noindex, nofollow" />
+  <link rel="icon" href="./NGT-logo-small.png" />
   <link rel="stylesheet" href="./styles.css" />
-  <style>
-    #adminControls.hidden {
-      display: none;
-    }
-  </style>
 </head>
 <body data-page="admin">
   <header class="site-header">
@@ -51,48 +49,21 @@
         <div class="page-hero-card">
           <p class="eyebrow">Administration</p>
           <h1>Administrative Control and Announcement Management</h1>
-          <p>Restricted access for authorized record and communication management.</p>
+          <p>This page is now informational only because secure web administration is not available in the static site.</p>
         </div>
       </div>
     </section>
 
     <section class="section">
       <div class="container">
-        <section id="loginBox" class="card form-card">
-          <h2>Secure Login</h2>
-          <p class="muted">Default demo credential: <strong>admin / ngt@2026</strong></p>
-          <form id="adminLoginForm" class="form-grid compact">
-            <label>Username<input type="text" id="adminUser" required /></label>
-            <label>Password<input type="password" id="adminPass" required /></label>
-            <button class="btn" type="submit">Login</button>
-          </form>
+        <section class="card form-card">
+          <h2>Administration Notice</h2>
+          <p id="adminStatus" class="status-note" role="status">Administrative functions are not available in this static build.</p>
         </section>
 
-        <section id="adminControls" class="hidden top-gap">
-          <div class="card form-card">
-            <div class="section-head">
-              <div>
-                <p class="eyebrow">Management</p>
-                <h2 class="section-title">Manage Announcements</h2>
-              </div>
-              <button id="logoutAdmin" class="btn btn-outline" type="button">Logout</button>
-            </div>
-            <form id="announcementForm" class="form-grid">
-              <input type="hidden" id="announcementEditId" />
-              <label>Title<input type="text" id="announcementTitle" required /></label>
-              <label>Date<input type="date" id="announcementDate" required /></label>
-              <label class="full">Details<textarea id="announcementBody" rows="4" required></textarea></label>
-              <div class="form-actions">
-                <button class="btn" type="submit">Save Announcement</button>
-                <button class="btn btn-outline" type="button" id="cancelAnnouncementEdit">Cancel</button>
-              </div>
-            </form>
-          </div>
-
-          <div class="card top-gap">
-            <h3>Existing Announcements</h3>
-            <div id="announcementAdminList"></div>
-          </div>
+        <section class="card top-gap">
+          <h3>Announcement Preview</h3>
+          <div id="announcementAdminList"></div>
         </section>
       </div>
     </section>
@@ -100,7 +71,8 @@
 
   <footer class="site-footer">
     <div class="container footer-grid">
-      <div>
+      <div class="footer-brand">
+        <img class="footer-brand-logo" src="./NGT-logo-small.png" alt="Nyikem Gongzhu Tshogpa logo" width="120" height="97" loading="lazy" decoding="async" />
         <p class="footer-title">Nyikem Gongzhu Tshogpa</p>
         <p class="footer-copy">A platform for retired Red Scarf officers to stay connected through service, unity, and Bhutanese values.</p>
       </div>
@@ -117,11 +89,13 @@
         <p class="footer-title">Contact</p>
         <p class="footer-copy">Kingdom of Bhutan</p>
         <p class="footer-copy">Official NGT web portal</p>
-        <button id="langToggle" class="lang-btn" type="button">Dzongkha Placeholder</button>
+        <button id="langToggle" class="lang-btn" type="button">Dzongkha Coming Soon</button>
       </div>
     </div>
+    <div class="footer-bottom">&copy; 2026 Nyikem Gongzhu Tshogpa | Kingdom of Bhutan</div>
   </footer>
 
+  <script src="./site-content.js" defer></script>
   <script src="./members-data.js" defer></script>
   <script src="./app.js" defer></script>
 </body>

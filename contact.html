@@ -4,6 +4,8 @@
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>Contact NGT</title>
+  <meta name="description" content="Contact Nyikem Gongzhu Tshogpa through the secretariat office in Thimphu." />
+  <link rel="icon" href="./NGT-logo-small.png" />
   <link rel="stylesheet" href="./styles.css" />
 </head>
 <body data-page="contact">
@@ -46,7 +48,7 @@
         <div class="page-hero-card">
           <p class="eyebrow">Contact</p>
           <h1>Secretariat and Communication Desk</h1>
-          <p>Reach the organization for official communication, public inquiries, and coordination.</p>
+          <p>Reach the organization for official communication, public inquiries, and coordination by phone, email, or the contact form below.</p>
         </div>
       </div>
     </section>
@@ -74,17 +76,27 @@
               <span class="contact-icon">📍</span>
               <div>
                 <p class="contact-label">Postal Address</p>
-                <p class="contact-value">C/O Royal Privy Council Office, Motithang, Thimphu, Bhutan</p>
+                <p class="contact-value"><a href="https://www.google.com/maps?q=Motithang%2C%20Thimphu%2C%20Bhutan" target="_blank" rel="noopener">C/O Royal Privy Council Office, Motithang, Thimphu, Bhutan</a></p>
               </div>
             </div>
             <div class="contact-detail-item">
               <span class="contact-icon">📧</span>
               <div>
                 <p class="contact-label">Email</p>
-                <p class="contact-value">ngt-secretariat@gmail.com</p>
+                <p class="contact-value"><a href="mailto:ngt-secretariat@gmail.com">ngt-secretariat@gmail.com</a></p>
               </div>
             </div>
           </div>
+
+          <form id="contactForm" class="form-grid contact-form">
+            <label>Your Name<input id="contactName" type="text" autocomplete="name" required /></label>
+            <label>Email Address<input id="contactEmail" type="email" autocomplete="email" required /></label>
+            <label class="full">Message<textarea id="contactMessage" rows="5" required></textarea></label>
+            <div class="form-actions">
+              <button class="btn" type="submit">Send Email</button>
+            </div>
+          </form>
+          <p id="contactStatus" class="status-note top-gap" role="status">Use the form to open your email app with a prepared message to the secretariat.</p>
         </section>
 
         <section class="contact-side-column">
@@ -93,28 +105,28 @@
               <span class="contact-icon">📞</span>
               <div>
                 <p class="contact-label">Chairman</p>
-                <p class="contact-value">+975 17111880</p>
+                <p class="contact-value"><a href="tel:+97517111880">+975 17111880</a></p>
               </div>
             </article>
             <article class="contact-card">
               <span class="contact-icon">📞</span>
               <div>
                 <p class="contact-label">Vice Chairman</p>
-                <p class="contact-value">+975 17115454</p>
+                <p class="contact-value"><a href="tel:+97517115454">+975 17115454</a></p>
               </div>
             </article>
             <article class="contact-card">
               <span class="contact-icon">📞</span>
               <div>
                 <p class="contact-label">Secretary</p>
-                <p class="contact-value">+975 17602000</p>
+                <p class="contact-value"><a href="tel:+97517602000">+975 17602000</a></p>
               </div>
             </article>
             <article class="contact-card">
               <span class="contact-icon">📞</span>
               <div>
                 <p class="contact-label">Treasurer</p>
-                <p class="contact-value">+975 17603693</p>
+                <p class="contact-value"><a href="tel:+97517603693">+975 17603693</a></p>
               </div>
             </article>
           </div>
@@ -138,7 +150,8 @@
 
   <footer class="site-footer">
     <div class="container footer-grid">
-      <div>
+      <div class="footer-brand">
+        <img class="footer-brand-logo" src="./NGT-logo-small.png" alt="Nyikem Gongzhu Tshogpa logo" width="120" height="97" loading="lazy" decoding="async" />
         <p class="footer-title">Nyikem Gongzhu Tshogpa</p>
         <p class="footer-copy">A platform for retired Red Scarf officers to stay connected through service, unity, and Bhutanese values.</p>
       </div>
@@ -155,11 +168,13 @@
         <p class="footer-title">Contact</p>
         <p class="footer-copy">Kingdom of Bhutan</p>
         <p class="footer-copy">Official NGT web portal</p>
-        <button id="langToggle" class="lang-btn" type="button">Dzongkha Placeholder</button>
+        <button id="langToggle" class="lang-btn" type="button">Dzongkha Coming Soon</button>
       </div>
     </div>
+    <div class="footer-bottom">&copy; 2026 Nyikem Gongzhu Tshogpa | Kingdom of Bhutan</div>
   </footer>
 
+  <script src="./site-content.js" defer></script>
   <script src="./members-data.js" defer></script>
   <script src="./app.js" defer></script>
 </body>
