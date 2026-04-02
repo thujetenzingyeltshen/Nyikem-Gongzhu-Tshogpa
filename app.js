@@ -169,7 +169,41 @@ function setupNavigation() {
   const nav = document.querySelector(".main-nav");
 
   if (toggle && nav) {
-    toggle.addEventListener("click", () => nav.classList.toggle("open"));
+    const closeNav = () => {
+      nav.classList.remove("open");
+      document.body.classList.remove("nav-open");
+      toggle.setAttribute("aria-expanded", "false");
+    };
+
+    toggle.setAttribute("aria-expanded", "false");
+
+    toggle.addEventListener("click", () => {
+      const isOpen = nav.classList.toggle("open");
+      document.body.classList.toggle("nav-open", isOpen);
+      toggle.setAttribute("aria-expanded", String(isOpen));
+    });
+
+    nav.querySelectorAll("a").forEach((link) => {
+      link.addEventListener("click", closeNav);
+    });
+
+    document.addEventListener("click", (event) => {
+      const target = event.target;
+      if (!(target instanceof Node)) return;
+      if (!nav.classList.contains("open")) return;
+      if (nav.contains(target) || toggle.contains(target)) return;
+      closeNav();
+    });
+
+    document.addEventListener("keydown", (event) => {
+      if (event.key === "Escape") closeNav();
+    });
+
+    window.addEventListener("resize", () => {
+      if (window.innerWidth > 760) {
+        closeNav();
+      }
+    });
   }
 }
 
@@ -728,13 +762,13 @@ function initMembersPage() {
       .map(
         (member) => `
       <tr>
-        <td>${escapeHTML(member.serialId)}</td>
-        <td>${escapeHTML(member.fullName)}</td>
-          <td>${escapeHTML(member.serviceYear || "--")}</td>
-          <td>${escapeHTML(member.nyikemYear || "--")}</td>
-          <td>${escapeHTML(member.resignationYear || "--")}</td>
-          <td>${escapeHTML(member.joinedYear || "--")}</td>
-          <td>
+        <td data-label="Serial ID">${escapeHTML(member.serialId)}</td>
+        <td data-label="Full Name">${escapeHTML(member.fullName)}</td>
+          <td data-label="Service Year">${escapeHTML(member.serviceYear || "--")}</td>
+          <td data-label="Nyikem Year">${escapeHTML(member.nyikemYear || "--")}</td>
+          <td data-label="Resignation Year">${escapeHTML(member.resignationYear || "--")}</td>
+          <td data-label="Joined NGT">${escapeHTML(member.joinedYear || "--")}</td>
+          <td data-label="Actions">
             <button class="btn" data-action="view" data-id="${escapeHTML(member.id)}" type="button">View Profile</button>
           </td>
         </tr>
