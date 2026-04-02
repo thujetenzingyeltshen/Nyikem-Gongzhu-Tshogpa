@@ -211,7 +211,7 @@ function setupLanguagePlaceholder() {
   const btn = document.getElementById("langToggle");
   if (!btn) return;
 
-  btn.textContent = "Dzongkha Coming Soon";
+  btn.textContent = "རྫོང་ཁ coming soon";
   btn.disabled = true;
   btn.setAttribute("aria-disabled", "true");
   btn.title = "Dzongkha translation is not published yet.";

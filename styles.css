@@ -2001,78 +2001,64 @@ hr {
 
   .table-wrap {
     border-radius: 18px;
-    overflow: visible;
-    background: transparent;
-    border: 0;
-    box-shadow: none;
+    overflow-x: auto;
+    overflow-y: hidden;
+    background: linear-gradient(180deg, rgba(255, 255, 255, 0.99), rgba(255, 248, 239, 0.98));
+    border: 1px solid rgba(255, 140, 0, 0.1);
+    box-shadow: 0 16px 30px rgba(79, 52, 12, 0.08);
+    -webkit-overflow-scrolling: touch;
   }
 
   table {
     font-size: 0.88rem;
   }
 
-  .member-table,
-  .member-table tbody,
-  .member-table tr,
-  .member-table td {
-    display: block;
-    width: 100%;
+  .member-table {
+    min-width: 780px;
   }
 
   .member-table thead {
-    display: none;
+    display: table-header-group;
   }
 
   .member-table tbody {
-    display: grid;
-    gap: 0.85rem;
+    display: table-row-group;
   }
 
-  .member-table tbody tr {
-    border-radius: 18px;
-    overflow: hidden;
-    border: 1px solid rgba(255, 140, 0, 0.12);
-    box-shadow: var(--ngt-shadow-soft);
-    background: linear-gradient(180deg, rgba(255, 255, 255, 0.99), rgba(255, 248, 239, 0.96));
-    transform: none;
+  .member-table tr {
+    display: table-row;
+  }
+
+  .member-table td,
+  .member-table th {
+    display: table-cell;
+    white-space: nowrap;
+    vertical-align: middle;
+  }
+
+  .member-table td {
+    padding: 0.72rem 0.62rem;
+    background: transparent;
+  }
+
+  .member-table th {
+    padding: 0.8rem 0.62rem;
+    font-size: 0.75rem;
+    letter-spacing: 0.05em;
   }
 
   .member-table tbody tr:hover,
   .member-table tbody tr:hover td {
     transform: none;
     box-shadow: none;
-    background: initial;
-  }
-
-  .member-table td {
-    display: grid;
-    grid-template-columns: minmax(108px, 42%) minmax(0, 1fr);
-    gap: 0.6rem;
-    align-items: start;
-    padding: 0.7rem 0.8rem;
-    white-space: normal;
-    border-bottom: 1px solid rgba(34, 34, 34, 0.06);
-    background: transparent !important;
-  }
-
-  .member-table td:last-child {
-    border-bottom: 0;
-  }
-
-  .member-table td::before {
-    content: attr(data-label);
-    font-size: 0.72rem;
-    font-weight: 800;
-    letter-spacing: 0.06em;
-    text-transform: uppercase;
-    color: rgba(62, 38, 5, 0.78);
   }
 
   .member-table .btn {
-    width: 100%;
-    min-width: 0;
-    min-height: 44px;
-    padding: 0.72rem 0.9rem;
+    width: auto;
+    min-width: 98px;
+    min-height: 38px;
+    padding: 0.58rem 0.72rem;
+    font-size: 0.84rem;
   }
 
   .footer-wrap,
@@ -2316,13 +2302,31 @@ hr {
   }
 
   .member-table td {
-    grid-template-columns: 1fr;
-    gap: 0.25rem;
     padding: 0.65rem 0.75rem;
   }
 
-  .member-table td::before {
-    font-size: 0.68rem;
+  .member-table {
+    min-width: 700px;
+  }
+
+  .member-table th,
+  .member-table td {
+    font-size: 0.8rem;
+  }
+
+  .member-table th {
+    padding: 0.72rem 0.5rem;
+  }
+
+  .member-table td {
+    padding: 0.62rem 0.5rem;
+  }
+
+  .member-table .btn {
+    min-width: 88px;
+    min-height: 36px;
+    padding: 0.52rem 0.62rem;
+    font-size: 0.8rem;
   }
 
   .footer-brand-logo {
