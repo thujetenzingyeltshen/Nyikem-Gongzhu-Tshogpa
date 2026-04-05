@@ -419,6 +419,9 @@ async function uploadAnnouncementImage(file) {
     });
 
   if (uploadError) {
+    if (/bucket not found/i.test(uploadError.message || "")) {
+      throw new Error("Announcement image upload is not ready yet. Run the Supabase storage setup SQL to create the announcement-images bucket.");
+    }
     throw uploadError;
   }
 
@@ -1807,8 +1810,8 @@ function initAdminPage() {
       fillAnnouncementForm();
       setAdminSection("news");
       announcementStatus.textContent = existingItem
-        ? `${payload.title} was updated successfully.`
-        : `${payload.title} was added successfully.`;
+        ? `${payload.title} was published successfully.`
+        : `${payload.title} was published successfully.`;
     } catch (error) {
       announcementStatus.textContent = error.message || "Could not save the announcement.";
     }
