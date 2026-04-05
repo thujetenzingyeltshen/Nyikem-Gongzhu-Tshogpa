@@ -395,7 +395,6 @@ function initHomePage() {
   const heroSubtitle = document.getElementById("heroSubtitle");
   const heroText = document.getElementById("heroText");
   const heroCaption = document.getElementById("heroCaption");
-  const quickUpdateLabel = document.getElementById("quickUpdateLabel");
   const featuredAnnouncementMeta = document.getElementById("featuredAnnouncementMeta");
   const featuredAnnouncementTitle = document.getElementById("featuredAnnouncementTitle");
   const featuredAnnouncementBody = document.getElementById("featuredAnnouncementBody");
@@ -403,7 +402,6 @@ function initHomePage() {
   const items = getAnnouncementsSorted();
   const featuredAnnouncement = items[0];
 
-  if (quickUpdateLabel) quickUpdateLabel.textContent = featuredAnnouncement ? formatDisplayDate(featuredAnnouncement.date) : "No updates";
   if (featuredAnnouncementMeta) {
     featuredAnnouncementMeta.textContent = featuredAnnouncement
       ? `Latest official update | ${formatDisplayDate(featuredAnnouncement.date)}`
