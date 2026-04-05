@@ -1510,6 +1510,26 @@ body[data-page="members"] .data-card::before {
   white-space: pre-line;
 }
 
+.news-detail-card .announcement-photo-wrap {
+  margin: 1rem 0 1.1rem;
+  border-radius: 18px;
+  background: rgba(255, 248, 224, 0.72);
+  box-shadow: 0 8px 20px rgba(0, 0, 0, 0.1);
+}
+
+.news-detail-card .announcement-photo-wrap::after {
+  display: none;
+}
+
+.news-detail-card .announcement-photo {
+  width: 100%;
+  height: auto;
+  max-height: none;
+  object-fit: contain;
+  object-position: center top;
+  border-radius: 18px;
+}
+
 .service-list-card {
   margin-top: 1rem;
   padding: 1rem 1.05rem;
