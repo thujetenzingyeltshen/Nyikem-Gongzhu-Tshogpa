@@ -219,6 +219,11 @@ function normalizeYear(value) {
   return normalizeText(value).replace(/[^\d]/g, "").slice(0, 4);
 }
 
+function isIgnorableAuthSessionError(error) {
+  const message = normalizeText(error?.message).toLowerCase();
+  return message.includes("auth session missing");
+}
+
 function parseYearValue(value) {
   const normalized = normalizeYear(value);
   return normalized ? Number(normalized) : null;
@@ -1696,7 +1701,7 @@ function initAdminPage() {
     if (!client) return;
 
     const { error } = await client.auth.signOut();
-    if (error) {
+    if (error && !isIgnorableAuthSessionError(error)) {
       status.textContent = error.message || "Sign out failed.";
       return;
     }
@@ -1820,7 +1825,10 @@ function initAdminPage() {
     }
 
     try {
-      await client.auth.signOut();
+      const { error } = await client.auth.signOut();
+      if (error && !isIgnorableAuthSessionError(error)) {
+        throw error;
+      }
     } catch {
       // Ignore stale session cleanup errors and continue with a fresh sign-in prompt.
     }
