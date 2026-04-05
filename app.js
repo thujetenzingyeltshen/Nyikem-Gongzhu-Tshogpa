@@ -1803,17 +1803,17 @@ function initAdminPage() {
         payload.imageUrl = await uploadAnnouncementImage(announcementImageFileInput.files[0]);
       }
 
-      announcementStatus.textContent = existingItem ? "Updating announcement..." : "Saving announcement...";
+      announcementStatus.textContent = existingItem ? "Publishing updated news..." : "Publishing news...";
       await saveAnnouncementToSupabase(payload, existingItem);
       await refreshAnnouncementsFromSupabase();
       renderAnnouncementAdminList();
       fillAnnouncementForm();
       setAdminSection("news");
       announcementStatus.textContent = existingItem
-        ? `${payload.title} was published successfully.`
-        : `${payload.title} was published successfully.`;
+        ? "News was updated successfully."
+        : "News was published successfully.";
     } catch (error) {
-      announcementStatus.textContent = error.message || "Could not save the announcement.";
+      announcementStatus.textContent = error.message || "Could not publish the news.";
     }
   });
 
