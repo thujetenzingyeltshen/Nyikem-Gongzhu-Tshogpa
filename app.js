@@ -618,26 +618,44 @@ function renderAnnouncementCard(item, options = {}) {
   const mode = options.mode || "news";
   const category = inferAnnouncementCategory(item);
   const excerpt = getAnnouncementExcerpt(item, mode === "preview" ? 120 : 170);
-  const hasOverflow = String(item.body || "").trim().length > excerpt.length;
+  const detailHref = `news.html?announcement=${encodeURIComponent(item.id)}`;
+  const imageMarkup = item.imageUrl && mode !== "news"
+    ? `<div class="announcement-photo-wrap"><img class="announcement-photo" src="${escapeHTML(item.imageUrl)}" alt="${escapeHTML(item.title)}" loading="lazy" decoding="async" /></div>`
+    : "";
   const actionMarkup =
     mode === "news"
-      ? hasOverflow
-        ? `<div class="announcement-actions"><button class="announcement-read-more" data-action="toggle-news" data-id="${escapeHTML(item.id)}" type="button">Read More -&gt;</button></div>`
-        : ""
-      : `<div class="announcement-actions"><a class="announcement-read-more" href="news.html">Read More -&gt;</a></div>`;
+      ? `<div class="announcement-actions"><a class="announcement-read-more" href="${detailHref}">Read More -&gt;</a></div>`
+      : `<div class="announcement-actions"><a class="announcement-read-more" href="${detailHref}">Read More -&gt;</a></div>`;
 
   return `
     <article class="announcement-item">
-      ${item.imageUrl ? `<img class="announcement-photo" src="${escapeHTML(item.imageUrl)}" alt="${escapeHTML(item.title)}" loading="lazy" decoding="async" />` : ""}
+      ${imageMarkup}
       <div class="announcement-meta">
         <span class="badge">${escapeHTML(category)}</span>
         <p class="announcement-date">${escapeHTML(formatDisplayDate(item.date))}</p>
       </div>
       <h3>${escapeHTML(item.title)}</h3>
       <p class="announcement-excerpt">${escapeHTML(excerpt)}</p>
-      ${hasOverflow && mode === "news" ? `<p class="announcement-full hidden" id="announcement-full-${escapeHTML(item.id)}">${escapeHTML(item.body)}</p>` : ""}
       ${actionMarkup}
     </article>
+  `;
+}
+
+function renderAnnouncementDetail(item) {
+  const category = inferAnnouncementCategory(item);
+  return `
+    <section class="news-detail-shell">
+      <a class="btn btn-outline news-detail-back" href="news.html">Back to News</a>
+      <article class="news-detail-card">
+        <div class="announcement-meta">
+          <span class="badge">${escapeHTML(category)}</span>
+          <p class="announcement-date">${escapeHTML(formatDisplayDate(item.date))}</p>
+        </div>
+        <h2>${escapeHTML(item.title)}</h2>
+        ${item.imageUrl ? `<div class="announcement-photo-wrap"><img class="announcement-photo" src="${escapeHTML(item.imageUrl)}" alt="${escapeHTML(item.title)}" loading="eager" decoding="async" /></div>` : ""}
+        <p class="announcement-full">${escapeHTML(item.body)}</p>
+      </article>
+    </section>
   `;
 }
 
@@ -874,7 +892,7 @@ function initSearchPage() {
 
     const announcementCards = announcements.map(
       (item) => `
-        <a class="search-result-card" href="news.html">
+        <a class="search-result-card" href="news.html?announcement=${encodeURIComponent(item.id)}">
           <span class="search-result-type">Announcement</span>
           <strong>${highlightMatch(item.title, cleanTerm)}</strong>
           <p>${escapeHTML(formatDisplayDate(item.date))}</p>
@@ -945,34 +963,37 @@ function initSearchPage() {
 
 function initNewsPage() {
   const list = document.getElementById("announcementList");
+  const listView = document.getElementById("newsListView");
+  const detailView = document.getElementById("newsDetailView");
   const summary = document.getElementById("newsResultSummary");
   if (!list) return;
 
   const items = getAnnouncementsSorted();
+  const params = new URLSearchParams(window.location.search);
+  const selectedAnnouncementId = params.get("announcement");
+  const selectedAnnouncement = selectedAnnouncementId
+    ? items.find((item) => String(item.id) === selectedAnnouncementId)
+    : null;
+
+  if (selectedAnnouncement && detailView && listView) {
+    listView.classList.add("hidden");
+    detailView.classList.remove("hidden");
+    detailView.innerHTML = renderAnnouncementDetail(selectedAnnouncement);
+    return;
+  }
+
+  if (detailView && listView) {
+    detailView.classList.add("hidden");
+    detailView.innerHTML = "";
+    listView.classList.remove("hidden");
+  }
+
   if (summary) {
     summary.textContent = `${items.length} official update${items.length === 1 ? "" : "s"} available`;
   }
   list.innerHTML = items.length
     ? items.map((item) => renderAnnouncementCard(item, { mode: "news" })).join("")
     : "<p>No announcements available.</p>";
-
-  list.addEventListener("click", (event) => {
-    const rawTarget = event.target;
-    if (!(rawTarget instanceof HTMLElement)) return;
-    const target = rawTarget.closest("[data-action='toggle-news']");
-    if (!(target instanceof HTMLElement)) return;
-
-    const announcementId = target.dataset.id;
-    if (!announcementId) return;
-
-    const full = document.getElementById(`announcement-full-${announcementId}`);
-    const excerpt = target.closest(".announcement-item")?.querySelector(".announcement-excerpt");
-    if (!(full instanceof HTMLElement) || !(excerpt instanceof HTMLElement)) return;
-
-    const isHidden = full.classList.toggle("hidden");
-    excerpt.classList.toggle("hidden", !isHidden);
-    target.textContent = isHidden ? "Read More ->" : "Show Less ->";
-  });
 }
 
 /* ------------------------------
