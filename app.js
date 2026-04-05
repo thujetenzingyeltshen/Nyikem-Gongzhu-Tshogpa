@@ -8,6 +8,14 @@ const STORAGE_KEYS = {
 };
 
 const SUPPORT_EMAIL = "ngt-secretariat@gmail.com";
+const DEFAULT_SUPABASE_CONFIG = {
+  url: "",
+  anonKey: "",
+  membersTable: "members",
+  adminUsersTable: "admin_users",
+  announcementsTable: "announcements"
+};
+let supabaseClient = null;
 
 const SITE_PAGE_INDEX = [
   {
@@ -84,6 +92,21 @@ function getConfiguredDocuments() {
   return Array.isArray(documents) ? documents : [];
 }
 
+function sanitizeImageUrl(value) {
+  const url = String(value ?? "").trim();
+  if (!url) return "";
+  if (/^(https?:)?\/\//i.test(url)) return url;
+  if (/^(?:\.\/|\.\.\/|\/)[^\s]+$/i.test(url)) return url;
+  return "";
+}
+
+function sanitizeFileName(value) {
+  return String(value ?? "")
+    .toLowerCase()
+    .replace(/[^a-z0-9._-]+/g, "-")
+    .replace(/^-+|-+$/g, "") || "image";
+}
+
 function escapeHTML(value) {
   return String(value ?? "")
     .replace(/&/g, "&amp;")
@@ -156,11 +179,298 @@ function setData(key, value) {
   localStorage.setItem(key, JSON.stringify(value));
 }
 
+function getSupabaseConfig() {
+  const raw = window.NGT_SUPABASE_CONFIG || {};
+  return {
+    ...DEFAULT_SUPABASE_CONFIG,
+    ...raw
+  };
+}
+
+function isSupabaseConfigured() {
+  const config = getSupabaseConfig();
+  return Boolean(
+    config.url &&
+      config.anonKey &&
+      window.supabase &&
+      typeof window.supabase.createClient === "function"
+  );
+}
+
+function getSupabaseClient() {
+  if (!isSupabaseConfigured()) return null;
+  if (supabaseClient) return supabaseClient;
+
+  const config = getSupabaseConfig();
+  supabaseClient = window.supabase.createClient(config.url, config.anonKey, {
+    auth: {
+      persistSession: true,
+      autoRefreshToken: true
+    }
+  });
+  return supabaseClient;
+}
+
+function normalizeText(value) {
+  return String(value ?? "").trim();
+}
+
+function normalizeYear(value) {
+  return normalizeText(value).replace(/[^\d]/g, "").slice(0, 4);
+}
+
+function parseYearValue(value) {
+  const normalized = normalizeYear(value);
+  return normalized ? Number(normalized) : null;
+}
+
+function mapRemoteMember(row) {
+  return {
+    id: row.id,
+    serialId: normalizeText(row.serial_id),
+    fullName: normalizeText(row.full_name),
+    serviceYear: normalizeYear(row.service_year),
+    nyikemYear: normalizeYear(row.nyikem_year),
+    resignationYear: normalizeYear(row.resignation_year),
+    joinedYear: normalizeYear(row.joined_year),
+    cidNo: normalizeText(row.cid_no),
+    dateOfBirth: normalizeText(row.date_of_birth),
+    address: normalizeText(row.address),
+    phone: normalizeText(row.phone),
+    email: normalizeText(row.email),
+    lastPost: normalizeText(row.last_post),
+    spouseOrKin: normalizeText(row.spouse_or_kin),
+    knowledge: normalizeText(row.knowledge)
+  };
+}
+
+function mapMemberToRemote(member) {
+  return {
+    serial_id: normalizeText(member.serialId),
+    full_name: normalizeText(member.fullName),
+    service_year: normalizeYear(member.serviceYear),
+    nyikem_year: normalizeYear(member.nyikemYear),
+    resignation_year: normalizeYear(member.resignationYear),
+    joined_year: normalizeYear(member.joinedYear),
+    cid_no: normalizeText(member.cidNo),
+    date_of_birth: normalizeText(member.dateOfBirth),
+    address: normalizeText(member.address),
+    phone: normalizeText(member.phone),
+    email: normalizeText(member.email),
+    last_post: normalizeText(member.lastPost),
+    spouse_or_kin: normalizeText(member.spouseOrKin),
+    knowledge: normalizeText(member.knowledge)
+  };
+}
+
+function mapRemoteAnnouncement(row) {
+  return {
+    id: row.id,
+    title: normalizeText(row.title),
+    date: normalizeText(row.date),
+    imageUrl: sanitizeImageUrl(row.image_url),
+    body: normalizeText(row.body)
+  };
+}
+
+function mapAnnouncementToRemote(item) {
+  return {
+    title: normalizeText(item.title),
+    date: normalizeText(item.date),
+    image_url: sanitizeImageUrl(item.imageUrl),
+    body: normalizeText(item.body)
+  };
+}
+
+async function refreshMembersFromSupabase() {
+  const client = getSupabaseClient();
+  if (!client) return false;
+
+  const config = getSupabaseConfig();
+  const { data, error } = await client
+    .from(config.membersTable)
+    .select("*")
+    .order("serial_id", { ascending: true });
+
+  if (error) {
+    throw error;
+  }
+
+  const remoteMembers = Array.isArray(data) ? data.map(mapRemoteMember) : [];
+  const existingLocalMembers = getData(STORAGE_KEYS.members, []);
+  if (remoteMembers.length || !existingLocalMembers.length) {
+    setData(STORAGE_KEYS.members, remoteMembers);
+  }
+  return true;
+}
+
+async function refreshAnnouncementsFromSupabase() {
+  const client = getSupabaseClient();
+  if (!client) return false;
+
+  const config = getSupabaseConfig();
+  const { data, error } = await client
+    .from(config.announcementsTable)
+    .select("*")
+    .order("date", { ascending: false });
+
+  if (error) {
+    throw error;
+  }
+
+  const remoteAnnouncements = Array.isArray(data) ? data.map(mapRemoteAnnouncement) : [];
+  const existingLocalAnnouncements = getData(STORAGE_KEYS.announcements, []);
+  if (remoteAnnouncements.length || !existingLocalAnnouncements.length) {
+    setData(STORAGE_KEYS.announcements, remoteAnnouncements);
+  }
+  return true;
+}
+
+async function saveMemberToSupabase(member, existingMember = null) {
+  const client = getSupabaseClient();
+  if (!client) {
+    throw new Error("Supabase is not configured.");
+  }
+
+  const config = getSupabaseConfig();
+  const payload = mapMemberToRemote(member);
+
+  if (existingMember?.id) {
+    const { error } = await client.from(config.membersTable).update(payload).eq("id", existingMember.id);
+    if (error) throw error;
+    return existingMember.id;
+  }
+
+  const { data, error } = await client.from(config.membersTable).insert(payload).select("id").single();
+  if (error) throw error;
+  return data?.id || null;
+}
+
+async function deleteMemberFromSupabase(memberId) {
+  const client = getSupabaseClient();
+  if (!client) {
+    throw new Error("Supabase is not configured.");
+  }
+
+  const config = getSupabaseConfig();
+  const { error } = await client.from(config.membersTable).delete().eq("id", memberId);
+  if (error) throw error;
+}
+
+async function saveAnnouncementToSupabase(item, existingItem = null) {
+  const client = getSupabaseClient();
+  if (!client) {
+    throw new Error("Supabase is not configured.");
+  }
+
+  const config = getSupabaseConfig();
+  const payload = mapAnnouncementToRemote(item);
+
+  if (existingItem?.id) {
+    const { error } = await client.from(config.announcementsTable).update(payload).eq("id", existingItem.id);
+    if (error) throw error;
+    return existingItem.id;
+  }
+
+  const { data, error } = await client.from(config.announcementsTable).insert(payload).select("id").single();
+  if (error) throw error;
+  return data?.id || null;
+}
+
+async function deleteAnnouncementFromSupabase(announcementId) {
+  const client = getSupabaseClient();
+  if (!client) {
+    throw new Error("Supabase is not configured.");
+  }
+
+  const config = getSupabaseConfig();
+  const { error } = await client.from(config.announcementsTable).delete().eq("id", announcementId);
+  if (error) throw error;
+}
+
+async function uploadAnnouncementImage(file) {
+  const client = getSupabaseClient();
+  if (!client) {
+    throw new Error("Supabase is not configured.");
+  }
+
+  if (!(file instanceof File)) {
+    return "";
+  }
+
+  if (!file.type.startsWith("image/")) {
+    throw new Error("Please upload an image file.");
+  }
+
+  const maxBytes = 5 * 1024 * 1024;
+  if (file.size > maxBytes) {
+    throw new Error("Please upload an image smaller than 5 MB.");
+  }
+
+  const config = getSupabaseConfig();
+  const extension = sanitizeFileName(file.name).split(".").pop();
+  const path = `announcements/${Date.now()}-${Math.random().toString(36).slice(2, 8)}.${extension}`;
+
+  const { error: uploadError } = await client.storage
+    .from(config.announcementImagesBucket)
+    .upload(path, file, {
+      cacheControl: "3600",
+      upsert: false
+    });
+
+  if (uploadError) {
+    throw uploadError;
+  }
+
+  const { data } = client.storage.from(config.announcementImagesBucket).getPublicUrl(path);
+  return data?.publicUrl || "";
+}
+
+async function getCurrentSupabaseUser() {
+  const client = getSupabaseClient();
+  if (!client) return null;
+
+  const {
+    data: { user },
+    error
+  } = await client.auth.getUser();
+
+  if (error) {
+    throw error;
+  }
+
+  return user || null;
+}
+
+async function isSupabaseAdminUser(userId) {
+  const client = getSupabaseClient();
+  if (!client || !userId) return false;
+
+  const config = getSupabaseConfig();
+  const { data, error } = await client
+    .from(config.adminUsersTable)
+    .select("user_id")
+    .eq("user_id", userId)
+    .maybeSingle();
+
+  if (error) {
+    throw error;
+  }
+
+  return Boolean(data?.user_id);
+}
+
 function setupDefaults() {
   const seededMembers = Array.isArray(window.NGT_MEMBERS_SEED) ? window.NGT_MEMBERS_SEED : [];
   const existingMembers = getData(STORAGE_KEYS.members, []);
   if (!localStorage.getItem(STORAGE_KEYS.members) || (!existingMembers.length && seededMembers.length)) {
     setData(STORAGE_KEYS.members, seededMembers);
+  }
+
+  const seededAnnouncements = getConfiguredAnnouncements();
+  const existingAnnouncements = getData(STORAGE_KEYS.announcements, []);
+  if (!localStorage.getItem(STORAGE_KEYS.announcements) || (!existingAnnouncements.length && seededAnnouncements.length)) {
+    setData(STORAGE_KEYS.announcements, seededAnnouncements);
   }
 }
 
@@ -221,10 +531,9 @@ function setupLanguagePlaceholder() {
    Announcement Helpers
 ------------------------------ */
 function getAnnouncementsSorted() {
+  const storedAnnouncements = getData(STORAGE_KEYS.announcements, []);
   const configuredAnnouncements = getConfiguredAnnouncements();
-  const announcements = configuredAnnouncements.length
-    ? configuredAnnouncements
-    : getData(STORAGE_KEYS.announcements, []);
+  const announcements = storedAnnouncements.length ? storedAnnouncements : configuredAnnouncements;
   return [...announcements].sort((a, b) => new Date(b.date) - new Date(a.date));
 }
 
@@ -288,6 +597,7 @@ function getSearchSnippet(values, term) {
 function renderAnnouncementCard(item) {
   return `
     <article class="announcement-item">
+      ${item.imageUrl ? `<img class="announcement-photo" src="${escapeHTML(item.imageUrl)}" alt="${escapeHTML(item.title)}" loading="lazy" decoding="async" />` : ""}
       <div class="announcement-meta">
         <span class="badge">New</span>
         <p class="muted">${escapeHTML(formatDisplayDate(item.date))}</p>
@@ -422,6 +732,7 @@ function initHomePage() {
       ? previewItems
           .map((item, index) => `
             <article class="announcement-item ${index === 0 ? "announcement-item-featured" : ""}">
+              ${item.imageUrl ? `<img class="announcement-photo" src="${escapeHTML(item.imageUrl)}" alt="${escapeHTML(item.title)}" loading="lazy" decoding="async" />` : ""}
               <div class="announcement-meta">
                 <span class="badge">${index === 0 ? "Latest" : "New"}</span>
                 <p class="muted">${escapeHTML(formatDisplayDate(item.date))}</p>
@@ -627,10 +938,96 @@ function generateSerialId(members) {
 }
 
 function validateMemberYears(serviceYear, nyikemYear, resignationYear, joinedYear) {
-  if (serviceYear > nyikemYear) return "Service year cannot be after Nyikem year.";
-  if (nyikemYear > resignationYear) return "Nyikem year cannot be after resignation year.";
-  if (joinedYear < resignationYear) return "Joined NGT year should be same or after resignation year.";
+  const service = parseYearValue(serviceYear);
+  const nyikem = parseYearValue(nyikemYear);
+  const resignation = parseYearValue(resignationYear);
+  const joined = parseYearValue(joinedYear);
+
+  if (service && nyikem && service > nyikem) return "Service year cannot be after Nyikem year.";
+  if (nyikem && resignation && nyikem > resignation) return "Nyikem year cannot be after resignation year.";
+  if (joined && resignation && joined < resignation) return "Joined NGT year should be same or after resignation year.";
   return "";
+}
+
+function buildMemberPayload(source, existingMembers, currentMember = null) {
+  const serialId = normalizeText(source.serialId) || currentMember?.serialId || generateSerialId(existingMembers);
+  const fullName = normalizeText(source.fullName);
+  const email = normalizeText(source.email);
+
+  return {
+    id: currentMember?.id || `member-${Date.now()}`,
+    serialId,
+    fullName,
+    serviceYear: normalizeYear(source.serviceYear),
+    nyikemYear: normalizeYear(source.nyikemYear),
+    resignationYear: normalizeYear(source.resignationYear),
+    joinedYear: normalizeYear(source.joinedYear),
+    cidNo: normalizeText(source.cidNo),
+    dateOfBirth: normalizeText(source.dateOfBirth),
+    address: normalizeText(source.address),
+    phone: normalizeText(source.phone),
+    email,
+    lastPost: normalizeText(source.lastPost),
+    spouseOrKin: normalizeText(source.spouseOrKin),
+    knowledge: normalizeText(source.knowledge)
+  };
+}
+
+function downloadTextFile(filename, content, mimeType = "text/plain;charset=utf-8") {
+  const blob = new Blob([content], { type: mimeType });
+  const url = URL.createObjectURL(blob);
+  const link = document.createElement("a");
+  link.href = url;
+  link.download = filename;
+  document.body.appendChild(link);
+  link.click();
+  link.remove();
+  URL.revokeObjectURL(url);
+}
+
+function escapeCsvValue(value) {
+  const text = String(value ?? "");
+  if (/[",\n]/.test(text)) {
+    return `"${text.replace(/"/g, "\"\"")}"`;
+  }
+  return text;
+}
+
+function membersToCsv(members) {
+  const headers = [
+    "Serial ID",
+    "Full Name",
+    "Service Year",
+    "Nyikem Year",
+    "Resignation Year",
+    "Joined NGT",
+    "CID No",
+    "Date of Birth",
+    "Address",
+    "Phone",
+    "Email",
+    "Last Post",
+    "Spouse / Next of Kin",
+    "Knowledge / Experience"
+  ];
+  const rows = members.map((member) => [
+    member.serialId,
+    member.fullName,
+    member.serviceYear,
+    member.nyikemYear,
+    member.resignationYear,
+    member.joinedYear,
+    member.cidNo,
+    member.dateOfBirth,
+    member.address,
+    member.phone,
+    member.email,
+    member.lastPost,
+    member.spouseOrKin,
+    member.knowledge
+  ]);
+
+  return [headers, ...rows].map((row) => row.map(escapeCsvValue).join(",")).join("\n");
 }
 
 function initMembersPage() {
@@ -811,29 +1208,665 @@ function initMembersPage() {
 
 function initAdminPage() {
   const status = document.getElementById("adminStatus");
-  const listWrap = document.getElementById("announcementAdminList");
-  if (!status || !listWrap) return;
+  const loginForm = document.getElementById("adminLoginForm");
+  const emailInput = document.getElementById("adminLoginEmail");
+  const passwordInput = document.getElementById("adminPassword");
+  const logoutBtn = document.getElementById("adminLogoutBtn");
+  const workspace = document.getElementById("adminWorkspace");
+  const memberForm = document.getElementById("memberAdminForm");
+  const formResetBtn = document.getElementById("memberFormResetBtn");
+  const memberStatus = document.getElementById("memberAdminStatus");
+  const memberCount = document.getElementById("memberAdminCount");
+  const tableBody = document.getElementById("memberAdminTableBody");
+  const memberIdInput = document.getElementById("memberId");
+  const serialIdInput = document.getElementById("adminSerialId");
+  const totalMembersOutput = document.getElementById("adminTotalMembers");
+  const emailCoverageOutput = document.getElementById("adminEmailCoverage");
+  const latestJoinedOutput = document.getElementById("adminLatestJoinedYear");
+  const adminSearchInput = document.getElementById("adminMemberSearch");
+  const adminJoinedFilter = document.getElementById("adminJoinedFilter");
+  const adminSortSelect = document.getElementById("adminAdminSort");
+  const refreshBtn = document.getElementById("adminRefreshMembersBtn");
+  const showMembersBtn = document.getElementById("adminShowMembersBtn");
+  const showNewsBtn = document.getElementById("adminShowNewsBtn");
+  const adminWorkspaceNote = document.getElementById("adminWorkspaceNote");
+  const memberAdminPanel = document.getElementById("memberAdminPanel");
+  const newsAdminPanel = document.getElementById("newsAdminPanel");
+  const announcementForm = document.getElementById("announcementAdminForm");
+  const announcementIdInput = document.getElementById("announcementId");
+  const announcementCurrentImageUrlInput = document.getElementById("announcementCurrentImageUrl");
+  const announcementTitleInput = document.getElementById("announcementTitle");
+  const announcementDateInput = document.getElementById("announcementDate");
+  const announcementImageFileInput = document.getElementById("announcementImageFile");
+  const announcementImagePreviewWrap = document.getElementById("announcementImagePreviewWrap");
+  const announcementImagePreview = document.getElementById("announcementImagePreview");
+  const announcementBodyInput = document.getElementById("announcementBody");
+  const announcementFormResetBtn = document.getElementById("announcementFormResetBtn");
+  const announcementStatus = document.getElementById("announcementAdminStatus");
+  const announcementSearchInput = document.getElementById("announcementSearch");
+  const announcementSortSelect = document.getElementById("announcementSort");
+  const announcementRefreshBtn = document.getElementById("announcementRefreshBtn");
+  const announcementList = document.getElementById("announcementAdminList");
 
-  function renderAdminAnnouncements() {
-    const items = getAnnouncementsSorted();
-    listWrap.innerHTML = items.length
-      ? items
-          .map(
-            (item) => `
-      <article class="admin-list-item">
-        <h4>${escapeHTML(item.title)}</h4>
-        <p class="muted">${escapeHTML(formatDisplayDate(item.date))}</p>
-        <p>${escapeHTML(item.body)}</p>
-      </article>
-    `
-          )
-          .join("")
-      : "<p>No announcements available.</p>";
+  if (
+    !status ||
+    !loginForm ||
+    !emailInput ||
+    !passwordInput ||
+    !logoutBtn ||
+    !workspace ||
+    !memberForm ||
+    !formResetBtn ||
+    !memberStatus ||
+    !memberCount ||
+    !tableBody ||
+    !memberIdInput ||
+    !serialIdInput ||
+    !totalMembersOutput ||
+    !emailCoverageOutput ||
+    !latestJoinedOutput ||
+    !adminSearchInput ||
+    !adminJoinedFilter ||
+    !adminSortSelect ||
+    !refreshBtn ||
+    !showMembersBtn ||
+    !showNewsBtn ||
+    !adminWorkspaceNote ||
+    !memberAdminPanel ||
+    !newsAdminPanel ||
+    !announcementForm ||
+    !announcementIdInput ||
+    !announcementCurrentImageUrlInput ||
+    !announcementTitleInput ||
+    !announcementDateInput ||
+    !announcementImageFileInput ||
+    !announcementImagePreviewWrap ||
+    !announcementImagePreview ||
+    !announcementBodyInput ||
+    !announcementFormResetBtn ||
+    !announcementStatus ||
+    !announcementSearchInput ||
+    !announcementSortSelect ||
+    !announcementRefreshBtn ||
+    !announcementList
+  ) {
+    return;
   }
 
-  status.textContent =
-    "Secure browser-based administration has been disabled in this static build. To update announcements safely, edit site-content.js or connect a real backend with server-side authentication.";
-  renderAdminAnnouncements();
+  const formFields = {
+    fullName: document.getElementById("adminFullName"),
+    serviceYear: document.getElementById("adminServiceYear"),
+    nyikemYear: document.getElementById("adminNyikemYear"),
+    resignationYear: document.getElementById("adminResignationYear"),
+    joinedYear: document.getElementById("adminJoinedYear"),
+    cidNo: document.getElementById("adminCidNo"),
+    dateOfBirth: document.getElementById("adminDateOfBirth"),
+    phone: document.getElementById("adminPhone"),
+    email: document.getElementById("adminEmail"),
+    address: document.getElementById("adminAddress"),
+    lastPost: document.getElementById("adminLastPost"),
+    spouseOrKin: document.getElementById("adminSpouseOrKin"),
+    knowledge: document.getElementById("adminKnowledge")
+  };
+
+  const getMembers = () => getData(STORAGE_KEYS.members, []);
+  const getAnnouncements = () => getData(STORAGE_KEYS.announcements, []);
+
+  function setAdminSection(section) {
+    const showMembers = section === "members";
+    const showNews = section === "news";
+    memberAdminPanel.classList.toggle("hidden", !showMembers);
+    newsAdminPanel.classList.toggle("hidden", !showNews);
+    showMembersBtn.classList.toggle("btn-primary", showMembers);
+    showMembersBtn.classList.toggle("btn-outline", !showMembers);
+    showMembersBtn.classList.toggle("is-active", showMembers);
+    showNewsBtn.classList.toggle("btn-primary", showNews);
+    showNewsBtn.classList.toggle("btn-outline", !showNews);
+    showNewsBtn.classList.toggle("is-active", showNews);
+    adminWorkspaceNote.textContent = showMembers
+      ? "You are managing member records."
+      : showNews
+        ? "You are managing public news and announcements."
+        : "Choose which section you want to manage.";
+  }
+
+  function compareAdminMembers(a, b, sortValue) {
+    if (sortValue === "joined-desc") return Number(b.joinedYear || 0) - Number(a.joinedYear || 0);
+    if (sortValue === "serial-asc") return String(a.serialId || "").localeCompare(String(b.serialId || ""), undefined, { numeric: true });
+    return String(a.fullName || "").localeCompare(String(b.fullName || ""));
+  }
+
+  function getFilteredAdminMembers() {
+    const keyword = adminSearchInput.value.trim().toLowerCase();
+    const joinedYear = adminJoinedFilter.value;
+    const sortValue = adminSortSelect.value;
+
+    return getMembers()
+      .filter((member) => {
+        const matchesSearch =
+          !keyword ||
+          [
+            member.serialId,
+            member.fullName,
+            member.phone,
+            member.email,
+            member.address,
+            member.lastPost
+          ]
+            .filter(Boolean)
+            .some((value) => String(value).toLowerCase().includes(keyword));
+        const matchesJoinedYear = !joinedYear || String(member.joinedYear || "") === joinedYear;
+        return matchesSearch && matchesJoinedYear;
+      })
+      .sort((a, b) => compareAdminMembers(a, b, sortValue));
+  }
+
+  function renderAdminSummary() {
+    const members = getMembers();
+    const withEmail = members.filter((member) => {
+      const email = String(member.email || "").trim();
+      return email && email !== "-";
+    }).length;
+    const latestJoined = members.reduce((latest, member) => {
+      const value = Number(member.joinedYear || 0);
+      return value > latest ? value : latest;
+    }, 0);
+
+    totalMembersOutput.textContent = String(members.length);
+    emailCoverageOutput.textContent = `${withEmail}/${members.length || 0}`;
+    latestJoinedOutput.textContent = latestJoined ? String(latestJoined) : "--";
+  }
+
+  function fillAnnouncementForm(item = null) {
+    announcementIdInput.value = item?.id || "";
+    announcementCurrentImageUrlInput.value = item?.imageUrl || "";
+    announcementTitleInput.value = item?.title || "";
+    announcementDateInput.value = item?.date || "";
+    announcementImageFileInput.value = "";
+    announcementBodyInput.value = item?.body || "";
+    announcementImagePreview.src = item?.imageUrl || "";
+    announcementImagePreviewWrap.classList.toggle("hidden", !item?.imageUrl);
+    announcementStatus.textContent = item
+      ? `Editing announcement: ${item.title}`
+      : "Create or update a news item for the public News page.";
+  }
+
+  function getFilteredAnnouncements() {
+    const keyword = announcementSearchInput.value.trim().toLowerCase();
+    const sortValue = announcementSortSelect.value;
+    const items = getAnnouncements().filter((item) => {
+      if (!keyword) return true;
+      return [item.title, item.body]
+        .filter(Boolean)
+        .some((value) => String(value).toLowerCase().includes(keyword));
+    });
+
+    if (sortValue === "date-asc") {
+      return items.sort((a, b) => new Date(a.date) - new Date(b.date));
+    }
+    if (sortValue === "title-asc") {
+      return items.sort((a, b) => String(a.title || "").localeCompare(String(b.title || "")));
+    }
+    return items.sort((a, b) => new Date(b.date) - new Date(a.date));
+  }
+
+  function renderAnnouncementAdminList() {
+    const items = getFilteredAnnouncements();
+    if (!items.length) {
+      announcementList.innerHTML = "<p>No announcements matched the current filters.</p>";
+      return;
+    }
+
+    announcementList.innerHTML = items
+      .map(
+        (item) => `
+          <article class="announcement-item">
+            <div class="announcement-meta">
+              <span class="badge">News</span>
+              <p class="muted">${escapeHTML(formatDisplayDate(item.date))}</p>
+            </div>
+            ${item.imageUrl ? `<img class="announcement-photo" src="${escapeHTML(item.imageUrl)}" alt="${escapeHTML(item.title)}" loading="lazy" decoding="async" />` : ""}
+            <h3>${escapeHTML(item.title)}</h3>
+            <p>${escapeHTML(item.body)}</p>
+            <div class="form-actions top-gap">
+              <button class="btn" data-action="edit-announcement" data-id="${escapeHTML(item.id)}" type="button">Edit</button>
+              <button class="btn btn-outline" data-action="delete-announcement" data-id="${escapeHTML(item.id)}" type="button">Delete</button>
+            </div>
+          </article>
+        `
+      )
+      .join("");
+  }
+
+  function populateAdminJoinedFilter() {
+    const years = [...new Set(getMembers().map((member) => member.joinedYear).filter(Boolean))]
+      .sort((a, b) => Number(b) - Number(a));
+    const currentValue = adminJoinedFilter.value;
+    adminJoinedFilter.innerHTML = `<option value="">All Joined Years</option>${years
+      .map((year) => `<option value="${escapeHTML(year)}">${escapeHTML(year)}</option>`)
+      .join("")}`;
+    adminJoinedFilter.value = years.includes(currentValue) ? currentValue : "";
+  }
+
+  function fillForm(member = null) {
+    const members = getMembers();
+    memberIdInput.value = member?.id || "";
+    serialIdInput.value = member?.serialId || generateSerialId(members);
+
+    Object.entries(formFields).forEach(([key, field]) => {
+      if (field) field.value = member?.[key] || "";
+    });
+
+    memberStatus.textContent = member
+      ? `Editing ${member.fullName}. Save when you are ready.`
+      : "Fill in the form and save to create a new member record.";
+  }
+
+  function renderAdminTable() {
+    const members = getFilteredAdminMembers();
+    memberCount.textContent = `${members.length} member${members.length === 1 ? "" : "s"} shown`;
+
+    if (!members.length) {
+      tableBody.innerHTML = "<tr><td colspan='6'>No members matched the current filters.</td></tr>";
+      return;
+    }
+
+    tableBody.innerHTML = members
+      .map(
+        (member) => `
+          <tr>
+            <td data-label="Serial ID">${escapeHTML(member.serialId || "--")}</td>
+            <td data-label="Full Name">${escapeHTML(member.fullName || "--")}</td>
+            <td data-label="Joined">${escapeHTML(member.joinedYear || "--")}</td>
+            <td data-label="Phone">${escapeHTML(member.phone || "--")}</td>
+            <td data-label="Email">${escapeHTML(member.email || "--")}</td>
+            <td data-label="Actions">
+              <button class="btn" data-action="edit-member" data-id="${escapeHTML(member.id)}" type="button">Edit</button>
+              <button class="btn btn-outline" data-action="delete-member" data-id="${escapeHTML(member.id)}" type="button">Delete</button>
+            </td>
+          </tr>
+        `
+      )
+      .join("");
+  }
+
+  function resetAdminWorkspace(message) {
+    workspace.classList.add("hidden");
+    logoutBtn.classList.add("hidden");
+    memberForm.reset();
+    memberIdInput.value = "";
+    serialIdInput.value = "";
+    adminSearchInput.value = "";
+    adminJoinedFilter.innerHTML = `<option value="">All Joined Years</option>`;
+    adminSortSelect.value = "name-asc";
+    tableBody.innerHTML = "";
+    memberCount.textContent = "0 members";
+    totalMembersOutput.textContent = "0";
+    emailCoverageOutput.textContent = "0";
+    latestJoinedOutput.textContent = "--";
+    memberStatus.textContent = message;
+    announcementForm.reset();
+    announcementIdInput.value = "";
+    announcementCurrentImageUrlInput.value = "";
+    announcementImagePreview.src = "";
+    announcementImagePreviewWrap.classList.add("hidden");
+    announcementList.innerHTML = "";
+    announcementSearchInput.value = "";
+    announcementSortSelect.value = "date-desc";
+    announcementStatus.textContent = message;
+    setAdminSection("none");
+  }
+
+  async function syncAdminView() {
+    if (!isSupabaseConfigured()) {
+      status.textContent =
+        "Supabase is not configured yet. Add your project URL and anon key in supabase-config.js first.";
+      resetAdminWorkspace("Supabase is not configured.");
+      return;
+    }
+
+    let user = null;
+    try {
+      user = await getCurrentSupabaseUser();
+    } catch (error) {
+      status.textContent = error.message || "Could not check the current admin session.";
+      resetAdminWorkspace("Could not verify admin session.");
+      return;
+    }
+
+    if (!user) {
+      status.textContent = "Sign in with your admin email and password to edit member records.";
+      resetAdminWorkspace("Admin is not signed in.");
+      return;
+    }
+
+    let isAdmin = false;
+    try {
+      isAdmin = await isSupabaseAdminUser(user.id);
+    } catch (error) {
+      status.textContent = error.message || "Could not verify admin permissions.";
+      resetAdminWorkspace("Could not verify admin permissions.");
+      logoutBtn.classList.remove("hidden");
+      return;
+    }
+
+    if (!isAdmin) {
+      status.textContent = `${user.email || "This account"} is signed in, but it does not have admin access.`;
+      resetAdminWorkspace("This account is not authorized to edit members.");
+      logoutBtn.classList.remove("hidden");
+      return;
+    }
+
+    try {
+      await refreshMembersFromSupabase();
+    } catch (error) {
+      status.textContent = error.message || "Could not load member records from Supabase.";
+      resetAdminWorkspace("Could not load member records.");
+      logoutBtn.classList.remove("hidden");
+      return;
+    }
+
+    workspace.classList.remove("hidden");
+    logoutBtn.classList.remove("hidden");
+    emailInput.value = user.email || "";
+    passwordInput.value = "";
+    status.textContent = `Signed in as ${user.email || "admin user"}. Online member editing is active.`;
+    renderAdminSummary();
+    populateAdminJoinedFilter();
+    renderAdminTable();
+    fillForm();
+    try {
+      await refreshAnnouncementsFromSupabase();
+    } catch {
+      // Keep existing local/static announcements if remote refresh is not available yet.
+    }
+    renderAnnouncementAdminList();
+    fillAnnouncementForm();
+    setAdminSection("none");
+  }
+
+  loginForm.addEventListener("submit", async (event) => {
+    event.preventDefault();
+    if (!isSupabaseConfigured()) {
+      status.textContent = "Supabase is not configured yet.";
+      return;
+    }
+
+    const client = getSupabaseClient();
+    const email = emailInput.value.trim();
+    const password = passwordInput.value;
+
+    if (!email || !password) {
+      status.textContent = "Enter both email and password.";
+      return;
+    }
+
+    status.textContent = "Signing in...";
+
+    const { error } = await client.auth.signInWithPassword({
+      email,
+      password
+    });
+
+    if (error) {
+      status.textContent = error.message || "Sign in failed.";
+      return;
+    }
+
+    await syncAdminView();
+  });
+
+  logoutBtn.addEventListener("click", async () => {
+    const client = getSupabaseClient();
+    if (!client) return;
+
+    const { error } = await client.auth.signOut();
+    if (error) {
+      status.textContent = error.message || "Sign out failed.";
+      return;
+    }
+
+    emailInput.value = "";
+    passwordInput.value = "";
+    await syncAdminView();
+  });
+
+  formResetBtn.addEventListener("click", () => fillForm());
+
+  memberForm.addEventListener("submit", async (event) => {
+    event.preventDefault();
+    if (!isSupabaseConfigured()) {
+      memberStatus.textContent = "Supabase is not configured.";
+      return;
+    }
+
+    const members = getMembers();
+    const editingId = memberIdInput.value;
+    const existingMember = members.find((member) => member.id === editingId) || null;
+    const formData = new FormData(memberForm);
+    const source = Object.fromEntries(formData.entries());
+    const payload = buildMemberPayload(source, members, existingMember);
+
+    if (!payload.fullName) {
+      memberStatus.textContent = "Full name is required.";
+      return;
+    }
+
+    const yearError = validateMemberYears(
+      payload.serviceYear,
+      payload.nyikemYear,
+      payload.resignationYear,
+      payload.joinedYear
+    );
+    if (yearError) {
+      memberStatus.textContent = yearError;
+      return;
+    }
+
+    const duplicateSerial = members.find((member) => member.serialId === payload.serialId && member.id !== payload.id);
+    if (duplicateSerial) {
+      memberStatus.textContent = "That serial ID already exists. Clear the form and try again.";
+      return;
+    }
+
+    try {
+      memberStatus.textContent = existingMember ? "Updating member..." : "Saving new member...";
+      await saveMemberToSupabase(payload, existingMember);
+      await refreshMembersFromSupabase();
+      renderAdminTable();
+      fillForm();
+      memberStatus.textContent = existingMember
+        ? `${payload.fullName} was updated successfully.`
+        : `${payload.fullName} was added successfully.`;
+      renderAdminSummary();
+      populateAdminJoinedFilter();
+    } catch (error) {
+      memberStatus.textContent = error.message || "Could not save the member record.";
+      await refreshMembersFromSupabase().catch(() => {});
+      renderAdminSummary();
+      populateAdminJoinedFilter();
+      renderAdminTable();
+    }
+  });
+
+  tableBody.addEventListener("click", async (event) => {
+    const rawTarget = event.target;
+    if (!(rawTarget instanceof HTMLElement)) return;
+    const target = rawTarget.closest("[data-action]");
+    if (!(target instanceof HTMLElement)) return;
+
+    const action = target.dataset.action;
+    const memberId = target.dataset.id;
+    if (!action || !memberId) return;
+
+    const members = getMembers();
+    const selected = members.find((member) => member.id === memberId);
+    if (!selected) return;
+
+    if (action === "edit-member") {
+      fillForm(selected);
+      memberForm.scrollIntoView({ behavior: "smooth", block: "start" });
+      return;
+    }
+
+    if (action === "delete-member") {
+      const confirmed = window.confirm(`Delete ${selected.fullName}? This will remove the member from this browser's records.`);
+      if (!confirmed) return;
+
+      try {
+        memberStatus.textContent = `Deleting ${selected.fullName}...`;
+        await deleteMemberFromSupabase(memberId);
+        await refreshMembersFromSupabase();
+        renderAdminSummary();
+        populateAdminJoinedFilter();
+        renderAdminTable();
+        fillForm();
+        memberStatus.textContent = `${selected.fullName} was deleted.`;
+      } catch (error) {
+        memberStatus.textContent = error.message || "Could not delete the member record.";
+      }
+    }
+  });
+
+  const client = getSupabaseClient();
+  client?.auth.onAuthStateChange(() => {
+    window.setTimeout(() => {
+      syncAdminView();
+    }, 0);
+  });
+
+  adminSearchInput.addEventListener("input", renderAdminTable);
+  adminJoinedFilter.addEventListener("change", renderAdminTable);
+  adminSortSelect.addEventListener("change", renderAdminTable);
+
+  refreshBtn.addEventListener("click", async () => {
+    try {
+      memberStatus.textContent = "Refreshing member records from Supabase...";
+      await refreshMembersFromSupabase();
+      renderAdminSummary();
+      populateAdminJoinedFilter();
+      renderAdminTable();
+      memberStatus.textContent = "Member records were refreshed successfully.";
+    } catch (error) {
+      memberStatus.textContent = error.message || "Could not refresh member records.";
+    }
+  });
+
+  showMembersBtn.addEventListener("click", () => setAdminSection("members"));
+  showNewsBtn.addEventListener("click", () => setAdminSection("news"));
+
+  announcementFormResetBtn.addEventListener("click", () => fillAnnouncementForm());
+
+  announcementSearchInput.addEventListener("input", renderAnnouncementAdminList);
+  announcementSortSelect.addEventListener("change", renderAnnouncementAdminList);
+
+  announcementRefreshBtn.addEventListener("click", async () => {
+    try {
+      announcementStatus.textContent = "Refreshing announcements from Supabase...";
+      await refreshAnnouncementsFromSupabase();
+      renderAnnouncementAdminList();
+      announcementStatus.textContent = "Announcements were refreshed successfully.";
+    } catch (error) {
+      announcementStatus.textContent = error.message || "Could not refresh announcements.";
+    }
+  });
+
+  announcementForm.addEventListener("submit", async (event) => {
+    event.preventDefault();
+    if (!isSupabaseConfigured()) {
+      announcementStatus.textContent = "Supabase is not configured.";
+      return;
+    }
+
+    const announcements = getAnnouncements();
+    const editingId = announcementIdInput.value;
+    const existingItem = announcements.find((item) => item.id === editingId) || null;
+    const payload = {
+      id: existingItem?.id || `announcement-${Date.now()}`,
+      title: normalizeText(announcementTitleInput.value),
+      date: normalizeText(announcementDateInput.value),
+      imageUrl: normalizeText(announcementCurrentImageUrlInput.value),
+      body: normalizeText(announcementBodyInput.value)
+    };
+
+    if (!payload.title || !payload.date || !payload.body) {
+      announcementStatus.textContent = "Title, date, and body are required.";
+      return;
+    }
+
+    try {
+      if (announcementImageFileInput.files?.[0]) {
+        announcementStatus.textContent = "Uploading photo...";
+        payload.imageUrl = await uploadAnnouncementImage(announcementImageFileInput.files[0]);
+      }
+
+      announcementStatus.textContent = existingItem ? "Updating announcement..." : "Saving announcement...";
+      await saveAnnouncementToSupabase(payload, existingItem);
+      await refreshAnnouncementsFromSupabase();
+      renderAnnouncementAdminList();
+      fillAnnouncementForm();
+      setAdminSection("news");
+      announcementStatus.textContent = existingItem
+        ? `${payload.title} was updated successfully.`
+        : `${payload.title} was added successfully.`;
+    } catch (error) {
+      announcementStatus.textContent = error.message || "Could not save the announcement.";
+    }
+  });
+
+  announcementList.addEventListener("click", async (event) => {
+    const rawTarget = event.target;
+    if (!(rawTarget instanceof HTMLElement)) return;
+    const target = rawTarget.closest("[data-action]");
+    if (!(target instanceof HTMLElement)) return;
+
+    const action = target.dataset.action;
+    const announcementId = target.dataset.id;
+    if (!action || !announcementId) return;
+
+    const announcements = getAnnouncements();
+    const selected = announcements.find((item) => item.id === announcementId);
+    if (!selected) return;
+
+    if (action === "edit-announcement") {
+      fillAnnouncementForm(selected);
+      setAdminSection("news");
+      announcementForm.scrollIntoView({ behavior: "smooth", block: "start" });
+      return;
+    }
+
+    if (action === "delete-announcement") {
+      const confirmed = window.confirm(`Delete announcement "${selected.title}"?`);
+      if (!confirmed) return;
+
+      try {
+        announcementStatus.textContent = `Deleting ${selected.title}...`;
+        await deleteAnnouncementFromSupabase(announcementId);
+        await refreshAnnouncementsFromSupabase();
+        renderAnnouncementAdminList();
+        fillAnnouncementForm();
+        setAdminSection("news");
+        announcementStatus.textContent = `${selected.title} was deleted.`;
+      } catch (error) {
+        announcementStatus.textContent = error.message || "Could not delete the announcement.";
+      }
+    }
+  });
+
+  announcementImageFileInput.addEventListener("change", () => {
+    const file = announcementImageFileInput.files?.[0];
+    if (!file) {
+      announcementImagePreview.src = announcementCurrentImageUrlInput.value || "";
+      announcementImagePreviewWrap.classList.toggle("hidden", !announcementImagePreview.src);
+      return;
+    }
+
+    const previewUrl = URL.createObjectURL(file);
+    announcementImagePreview.src = previewUrl;
+    announcementImagePreviewWrap.classList.remove("hidden");
+  });
+
+  syncAdminView();
 }
 
 /* ------------------------------
@@ -958,8 +1991,20 @@ function initServicesPage() {
 /* ------------------------------
    Initialize by Page
 ------------------------------ */
-function init() {
+async function init() {
   setupDefaults();
+  if (isSupabaseConfigured()) {
+    try {
+      await refreshMembersFromSupabase();
+    } catch {
+      // Keep local seeded data as a fallback if remote loading is unavailable.
+    }
+    try {
+      await refreshAnnouncementsFromSupabase();
+    } catch {
+      // Keep local/static announcements as a fallback if remote loading is unavailable.
+    }
+  }
   setupNavigation();
   setupLanguagePlaceholder();
   setupGlobalSearchNav();

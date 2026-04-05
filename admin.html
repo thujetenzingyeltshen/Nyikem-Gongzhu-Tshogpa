@@ -48,22 +48,243 @@
       <div class="container">
         <div class="page-hero-card">
           <p class="eyebrow">Administration</p>
-          <h1>Administrative Control and Announcement Management</h1>
-          <p>This page is now informational only because secure web administration is not available in the static site.</p>
+          <h1>Member Administration and Record Editing</h1>
+          <p>
+            Authorized administrators can sign in securely and update the shared online NGT member
+            records for all users.
+          </p>
         </div>
       </div>
     </section>
 
     <section class="section">
       <div class="container">
-        <section class="card form-card">
-          <h2>Administration Notice</h2>
-          <p id="adminStatus" class="status-note" role="status">Administrative functions are not available in this static build.</p>
+        <section class="card form-card admin-auth-card">
+          <h2>Admin Access</h2>
+          <p class="muted">
+            Sign in with a Supabase admin account. Only authenticated users added to the admin access
+            table will be allowed to edit member records.
+          </p>
+          <form id="adminLoginForm" class="form-grid compact admin-login-form">
+            <label class="full" for="adminLoginEmail">
+              Admin Email
+              <input id="adminLoginEmail" name="email" type="email" placeholder="name@example.com" autocomplete="username" />
+            </label>
+            <label class="full" for="adminPassword">
+              Password
+              <input id="adminPassword" name="password" type="password" placeholder="Enter your password" autocomplete="current-password" />
+            </label>
+            <div class="form-actions">
+              <button class="btn btn-primary" type="submit">Sign In</button>
+              <button class="btn btn-outline hidden" id="adminLogoutBtn" type="button">Sign Out</button>
+            </div>
+          </form>
+          <p id="adminStatus" class="status-note top-gap" role="status">Sign in with your admin email and password to edit member records.</p>
         </section>
 
-        <section class="card top-gap">
-          <h3>Announcement Preview</h3>
-          <div id="announcementAdminList"></div>
+        <section id="adminWorkspace" class="admin-workspace hidden">
+          <section class="info-ribbon admin-overview-ribbon">
+            <article class="ribbon-card">
+              <span class="ribbon-label">Total Members</span>
+              <strong id="adminTotalMembers">0</strong>
+              <p>All records currently available in the shared online directory.</p>
+            </article>
+            <article class="ribbon-card">
+              <span class="ribbon-label">With Email</span>
+              <strong id="adminEmailCoverage">0</strong>
+              <p>Members with a usable email address already recorded.</p>
+            </article>
+            <article class="ribbon-card">
+              <span class="ribbon-label">Latest Joined</span>
+              <strong id="adminLatestJoinedYear">--</strong>
+              <p>Most recent joined year currently found in the member records.</p>
+            </article>
+          </section>
+
+          <section class="card admin-switcher-card">
+            <div class="admin-switcher">
+              <button class="btn btn-primary admin-switch-btn is-active" id="adminShowMembersBtn" type="button">Edit Members</button>
+              <button class="btn btn-outline admin-switch-btn" id="adminShowNewsBtn" type="button">Edit News</button>
+            </div>
+            <p id="adminWorkspaceNote" class="muted">Choose which section you want to manage.</p>
+          </section>
+
+          <section id="memberAdminPanel" class="admin-panel-group">
+          <section class="card form-card">
+            <div class="section-head">
+              <div>
+                <p class="eyebrow">Editor</p>
+                <h3 class="section-title">Member Record Form</h3>
+                <p class="muted">Add a new member or update an existing record.</p>
+              </div>
+            </div>
+
+            <form id="memberAdminForm" class="form-grid">
+              <input id="memberId" name="memberId" type="hidden" />
+              <label for="adminSerialId">
+                Serial ID
+                <input id="adminSerialId" name="serialId" type="text" readonly />
+              </label>
+              <label for="adminFullName">
+                Full Name
+                <input id="adminFullName" name="fullName" type="text" required />
+              </label>
+              <label for="adminServiceYear">
+                Service Year
+                <input id="adminServiceYear" name="serviceYear" type="number" inputmode="numeric" min="1900" max="2100" />
+              </label>
+              <label for="adminNyikemYear">
+                Nyikem Year
+                <input id="adminNyikemYear" name="nyikemYear" type="number" inputmode="numeric" min="1900" max="2100" />
+              </label>
+              <label for="adminResignationYear">
+                Resignation Year
+                <input id="adminResignationYear" name="resignationYear" type="number" inputmode="numeric" min="1900" max="2100" />
+              </label>
+              <label for="adminJoinedYear">
+                Joined NGT
+                <input id="adminJoinedYear" name="joinedYear" type="number" inputmode="numeric" min="1900" max="2100" />
+              </label>
+              <label for="adminCidNo">
+                CID No
+                <input id="adminCidNo" name="cidNo" type="text" />
+              </label>
+              <label for="adminDateOfBirth">
+                Date of Birth
+                <input id="adminDateOfBirth" name="dateOfBirth" type="text" placeholder="DD/MM/YYYY" />
+              </label>
+              <label for="adminPhone">
+                Phone
+                <input id="adminPhone" name="phone" type="text" />
+              </label>
+              <label for="adminEmail">
+                Email
+                <input id="adminEmail" name="email" type="email" />
+              </label>
+              <label class="full" for="adminAddress">
+                Address
+                <textarea id="adminAddress" name="address"></textarea>
+              </label>
+              <label class="full" for="adminLastPost">
+                Last Post Held
+                <textarea id="adminLastPost" name="lastPost"></textarea>
+              </label>
+              <label class="full" for="adminSpouseOrKin">
+                Spouse / Next of Kin
+                <textarea id="adminSpouseOrKin" name="spouseOrKin"></textarea>
+              </label>
+              <label class="full" for="adminKnowledge">
+                Knowledge / Experience
+                <textarea id="adminKnowledge" name="knowledge"></textarea>
+              </label>
+              <div class="form-actions">
+                <button class="btn btn-primary" type="submit">Save Member</button>
+                <button class="btn btn-outline" id="memberFormResetBtn" type="button">Clear Form</button>
+              </div>
+            </form>
+            <p id="memberAdminStatus" class="status-note top-gap" role="status">Admin is not signed in.</p>
+          </section>
+
+          <section class="card top-gap">
+            <div class="section-head">
+              <div>
+                <p class="eyebrow">Records</p>
+                <h3 class="section-title">Current Member Records</h3>
+                <p id="memberAdminCount" class="muted">0 members</p>
+              </div>
+            </div>
+            <div class="table-tools member-tools sticky-tools admin-tools">
+              <label class="search-field" for="adminMemberSearch">
+                <span class="search-icon" aria-hidden="true">&#128269;</span>
+                <input type="text" id="adminMemberSearch" placeholder="Search by name, ID, email, phone, or address" />
+              </label>
+              <select id="adminJoinedFilter">
+                <option value="">All Joined Years</option>
+              </select>
+              <select id="adminAdminSort">
+                <option value="name-asc">Sort by Name</option>
+                <option value="joined-desc">Newest Joined Year</option>
+                <option value="serial-asc">Sort by Serial ID</option>
+              </select>
+              <div class="admin-actions-inline">
+                <button class="btn btn-outline" id="adminRefreshMembersBtn" type="button">Refresh</button>
+              </div>
+            </div>
+            <div class="table-wrap">
+              <table class="member-table admin-member-table">
+                <thead>
+                  <tr>
+                    <th>Serial ID</th>
+                    <th>Full Name</th>
+                    <th>Joined</th>
+                    <th>Phone</th>
+                    <th>Email</th>
+                    <th>Actions</th>
+                  </tr>
+                </thead>
+                <tbody id="memberAdminTableBody"></tbody>
+              </table>
+            </div>
+          </section>
+          </section>
+
+          <section id="newsAdminPanel" class="admin-panel-group hidden">
+          <section class="card top-gap">
+            <div class="section-head">
+              <div>
+                <p class="eyebrow">News Editor</p>
+                <h3 class="section-title">News and Announcement Management</h3>
+                <p class="muted">Create and update the notices shown on the News page and homepage.</p>
+              </div>
+            </div>
+
+            <form id="announcementAdminForm" class="form-grid">
+              <input id="announcementId" name="announcementId" type="hidden" />
+              <input id="announcementCurrentImageUrl" name="currentImageUrl" type="hidden" />
+              <label for="announcementTitle">
+                Announcement Title
+                <input id="announcementTitle" name="title" type="text" required />
+              </label>
+              <label for="announcementDate">
+                Publish Date
+                <input id="announcementDate" name="date" type="date" required />
+              </label>
+              <label class="full" for="announcementImageFile">
+                Upload Photo
+                <input id="announcementImageFile" name="imageFile" type="file" accept="image/*" />
+              </label>
+              <div class="full announcement-upload-preview hidden" id="announcementImagePreviewWrap">
+                <img id="announcementImagePreview" class="announcement-photo" alt="Announcement preview" />
+              </div>
+              <label class="full" for="announcementBody">
+                Announcement Body
+                <textarea id="announcementBody" name="body"></textarea>
+              </label>
+              <div class="form-actions">
+                <button class="btn btn-primary" type="submit">Save Announcement</button>
+                <button class="btn btn-outline" id="announcementFormResetBtn" type="button">Clear Form</button>
+              </div>
+            </form>
+            <p id="announcementAdminStatus" class="status-note top-gap" role="status">Sign in to manage announcements.</p>
+
+            <div class="table-tools admin-tools admin-news-tools top-gap">
+              <label class="search-field" for="announcementSearch">
+                <span class="search-icon" aria-hidden="true">&#128269;</span>
+                <input type="text" id="announcementSearch" placeholder="Search by title or announcement text" />
+              </label>
+              <select id="announcementSort">
+                <option value="date-desc">Newest First</option>
+                <option value="date-asc">Oldest First</option>
+                <option value="title-asc">Sort by Title</option>
+              </select>
+              <div class="admin-actions-inline">
+                <button class="btn btn-outline" id="announcementRefreshBtn" type="button">Refresh News</button>
+              </div>
+            </div>
+
+            <div id="announcementAdminList" class="announcement-list top-gap"></div>
+          </section>
+          </section>
         </section>
       </div>
     </section>
@@ -83,6 +304,7 @@
           <a href="members.html">Members</a>
           <a href="services.html">Services</a>
           <a href="news.html">News & Events</a>
+          <a href="admin.html">Admin</a>
         </div>
       </div>
       <div>
@@ -97,6 +319,8 @@
 
   <script src="./site-content.js" defer></script>
   <script src="./members-data.js" defer></script>
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2" defer></script>
+  <script src="./supabase-config.js" defer></script>
   <script src="./app.js" defer></script>
 </body>
 </html>
