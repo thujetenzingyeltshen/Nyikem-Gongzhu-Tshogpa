@@ -389,8 +389,11 @@ async function deleteAnnouncementFromSupabase(announcementId) {
   }
 
   const config = getSupabaseConfig();
-  const { error } = await client.from(config.announcementsTable).delete().eq("id", announcementId);
+  const { data, error } = await client.from(config.announcementsTable).delete().eq("id", announcementId).select("id");
   if (error) throw error;
+  if (!Array.isArray(data) || !data.length) {
+    throw new Error("News could not be deleted. Refresh the page and try again.");
+  }
 }
 
 async function uploadAnnouncementImage(file) {
@@ -1326,6 +1329,7 @@ function initAdminPage() {
   const announcementSortSelect = document.getElementById("announcementSort");
   const announcementRefreshBtn = document.getElementById("announcementRefreshBtn");
   const announcementList = document.getElementById("announcementAdminList");
+  const announcementDeleteStatus = document.getElementById("announcementDeleteStatus");
   let adminSessionBootstrapComplete = false;
 
   if (
@@ -1368,9 +1372,16 @@ function initAdminPage() {
     !announcementSearchInput ||
     !announcementSortSelect ||
     !announcementRefreshBtn ||
-    !announcementList
+    !announcementList ||
+    !announcementDeleteStatus
   ) {
     return;
+  }
+
+  function setAnnouncementDeleteStatus(message = "", isError = false) {
+    announcementDeleteStatus.textContent = message;
+    announcementDeleteStatus.classList.toggle("hidden", !message);
+    announcementDeleteStatus.classList.toggle("status-note-error", Boolean(message && isError));
   }
 
   const formFields = {
@@ -1594,6 +1605,7 @@ function initAdminPage() {
     announcementSearchInput.value = "";
     announcementSortSelect.value = "date-desc";
     announcementStatus.textContent = message;
+    setAnnouncementDeleteStatus("");
     setAdminSection("none");
   }
 
@@ -1909,6 +1921,7 @@ function initAdminPage() {
       renderAnnouncementAdminList();
       fillAnnouncementForm();
       setAdminSection("news");
+      setAnnouncementDeleteStatus("");
       announcementStatus.textContent = existingItem
         ? "News was updated successfully."
         : "News was published successfully.";
@@ -1934,6 +1947,7 @@ function initAdminPage() {
     if (action === "edit-announcement") {
       fillAnnouncementForm(selected);
       setAdminSection("news");
+      setAnnouncementDeleteStatus("");
       announcementForm.scrollIntoView({ behavior: "smooth", block: "start" });
       return;
     }
@@ -1949,9 +1963,11 @@ function initAdminPage() {
         renderAnnouncementAdminList();
         fillAnnouncementForm();
         setAdminSection("news");
-        announcementStatus.textContent = `${selected.title} was deleted.`;
+        announcementStatus.textContent = "News list updated.";
+        setAnnouncementDeleteStatus(`News deleted: ${selected.title}`);
       } catch (error) {
         announcementStatus.textContent = error.message || "Could not delete the announcement.";
+        setAnnouncementDeleteStatus(error.message || "Could not delete the news.", true);
       }
     }
   });

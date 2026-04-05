@@ -1054,6 +1054,12 @@ body[data-page="news"] .announcement-list {
   border: 1px solid rgba(255, 140, 0, 0.16);
 }
 
+.status-note-error {
+  color: #7a1e00;
+  background: rgba(255, 236, 230, 0.98);
+  border-color: rgba(184, 55, 16, 0.22);
+}
+
 .form-grid {
   display: grid;
   grid-template-columns: repeat(2, minmax(0, 1fr));
