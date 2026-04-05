@@ -641,9 +641,9 @@ function renderAnnouncementDetail(item) {
   const category = inferAnnouncementCategory(item);
   return `
     <section class="news-detail-shell">
-      <a class="btn btn-outline news-detail-back" href="news.html">Back to News</a>
+      <a class="btn btn-outline news-detail-back back-btn" href="news.html">Back to News</a>
       <article class="news-detail-card">
-        <div class="announcement-meta">
+        <div class="announcement-meta news-detail-meta">
           <span class="badge">${escapeHTML(category)}</span>
           <p class="announcement-date">${escapeHTML(formatDisplayDate(item.date))}</p>
         </div>
