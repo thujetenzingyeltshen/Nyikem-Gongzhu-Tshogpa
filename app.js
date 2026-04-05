@@ -755,6 +755,7 @@ function initHomePage() {
   const featuredAnnouncementMeta = document.getElementById("featuredAnnouncementMeta");
   const featuredAnnouncementTitle = document.getElementById("featuredAnnouncementTitle");
   const featuredAnnouncementBody = document.getElementById("featuredAnnouncementBody");
+  const featuredAnnouncementReadMore = document.getElementById("featuredAnnouncementReadMore");
 
   const items = getAnnouncementsSorted();
   const featuredAnnouncement = items[0];
@@ -769,8 +770,14 @@ function initHomePage() {
   }
   if (featuredAnnouncementBody) {
     featuredAnnouncementBody.textContent = featuredAnnouncement
-      ? featuredAnnouncement.body
+      ? getAnnouncementExcerpt(featuredAnnouncement, 260)
       : "Publish announcements in site-content.js to feature them across the homepage and news page.";
+  }
+  if (featuredAnnouncementReadMore) {
+    featuredAnnouncementReadMore.href = featuredAnnouncement
+      ? `news.html?announcement=${encodeURIComponent(featuredAnnouncement.id)}`
+      : "news.html";
+    featuredAnnouncementReadMore.textContent = featuredAnnouncement ? "Read More" : "View News";
   }
 
   if (wrapper) {
