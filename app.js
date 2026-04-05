@@ -619,9 +619,6 @@ function renderAnnouncementCard(item, options = {}) {
   const category = inferAnnouncementCategory(item);
   const excerpt = getAnnouncementExcerpt(item, mode === "preview" ? 120 : 170);
   const detailHref = `news.html?announcement=${encodeURIComponent(item.id)}`;
-  const imageMarkup = item.imageUrl && mode !== "news"
-    ? `<div class="announcement-photo-wrap"><img class="announcement-photo" src="${escapeHTML(item.imageUrl)}" alt="${escapeHTML(item.title)}" loading="lazy" decoding="async" /></div>`
-    : "";
   const actionMarkup =
     mode === "news"
       ? `<div class="announcement-actions"><a class="announcement-read-more" href="${detailHref}">Read More -&gt;</a></div>`
@@ -629,7 +626,6 @@ function renderAnnouncementCard(item, options = {}) {
 
   return `
     <article class="announcement-item">
-      ${imageMarkup}
       <div class="announcement-meta">
         <span class="badge">${escapeHTML(category)}</span>
         <p class="announcement-date">${escapeHTML(formatDisplayDate(item.date))}</p>
