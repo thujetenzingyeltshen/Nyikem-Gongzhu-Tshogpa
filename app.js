@@ -204,8 +204,8 @@ function getSupabaseClient() {
   const config = getSupabaseConfig();
   supabaseClient = window.supabase.createClient(config.url, config.anonKey, {
     auth: {
-      persistSession: true,
-      autoRefreshToken: true
+      persistSession: false,
+      autoRefreshToken: false
     }
   });
   return supabaseClient;
@@ -1314,6 +1314,7 @@ function initAdminPage() {
   const announcementSortSelect = document.getElementById("announcementSort");
   const announcementRefreshBtn = document.getElementById("announcementRefreshBtn");
   const announcementList = document.getElementById("announcementAdminList");
+  let adminSessionBootstrapComplete = false;
 
   if (
     !status ||
@@ -1602,7 +1603,7 @@ function initAdminPage() {
     }
 
     if (!user) {
-      status.textContent = "Sign in with your admin email and password to edit member records.";
+      status.textContent = "Sign in with your admin email and password each time you open this page to edit member records.";
       resetAdminWorkspace("Admin is not signed in.");
       return;
     }
@@ -1802,6 +1803,26 @@ function initAdminPage() {
     }, 0);
   });
 
+  async function bootstrapAdminSession() {
+    if (adminSessionBootstrapComplete) return;
+    adminSessionBootstrapComplete = true;
+
+    if (!client) {
+      await syncAdminView();
+      return;
+    }
+
+    try {
+      await client.auth.signOut();
+    } catch {
+      // Ignore stale session cleanup errors and continue with a fresh sign-in prompt.
+    }
+
+    emailInput.value = "";
+    passwordInput.value = "";
+    await syncAdminView();
+  }
+
   adminSearchInput.addEventListener("input", renderAdminTable);
   adminJoinedFilter.addEventListener("change", renderAdminTable);
   adminSortSelect.addEventListener("change", renderAdminTable);
@@ -1933,7 +1954,7 @@ function initAdminPage() {
     announcementImagePreviewWrap.classList.remove("hidden");
   });
 
-  syncAdminView();
+  bootstrapAdminSession();
 }
 
 /* ------------------------------
