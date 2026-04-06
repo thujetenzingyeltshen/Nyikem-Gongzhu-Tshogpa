@@ -3,6 +3,7 @@
 ------------------------------ */
 const STORAGE_KEYS = {
   members: "ngt_members",
+  membersSeedSignature: "ngt_members_seed_signature",
   announcements: "ngt_announcements",
   documents: "ngt_documents"
 };
@@ -268,6 +269,43 @@ function mapMemberToRemote(member) {
   };
 }
 
+function mergeMembersWithSeed(remoteMembers, seededMembers) {
+  const seedBySerialId = new Map(
+    seededMembers
+      .filter((member) => normalizeText(member.serialId))
+      .map((member) => [normalizeText(member.serialId), member])
+  );
+  const remoteBySerialId = new Map(
+    remoteMembers
+      .filter((member) => normalizeText(member.serialId))
+      .map((member) => [normalizeText(member.serialId), member])
+  );
+
+  const mergedMembers = seededMembers.map((seededMember) => {
+    const serialId = normalizeText(seededMember.serialId);
+    const remoteMember = remoteBySerialId.get(serialId);
+    if (!remoteMember) {
+      return seededMember;
+    }
+
+    return {
+      ...remoteMember,
+      ...seededMember,
+      id: remoteMember.id || seededMember.id
+    };
+  });
+
+  remoteMembers.forEach((remoteMember) => {
+    const serialId = normalizeText(remoteMember.serialId);
+    if (serialId && seedBySerialId.has(serialId)) {
+      return;
+    }
+    mergedMembers.push(remoteMember);
+  });
+
+  return mergedMembers;
+}
+
 function mapRemoteAnnouncement(row) {
   return {
     id: row.id,
@@ -303,8 +341,10 @@ async function refreshMembersFromSupabase() {
 
   const remoteMembers = Array.isArray(data) ? data.map(mapRemoteMember) : [];
   const existingLocalMembers = getData(STORAGE_KEYS.members, []);
-  if (remoteMembers.length || !existingLocalMembers.length) {
-    setData(STORAGE_KEYS.members, remoteMembers);
+  const seededMembers = Array.isArray(window.NGT_MEMBERS_SEED) ? window.NGT_MEMBERS_SEED : [];
+  const mergedMembers = mergeMembersWithSeed(remoteMembers, seededMembers);
+  if (mergedMembers.length || !existingLocalMembers.length) {
+    setData(STORAGE_KEYS.members, mergedMembers);
   }
   return true;
 }
@@ -474,8 +514,15 @@ async function isSupabaseAdminUser(userId) {
 function setupDefaults() {
   const seededMembers = Array.isArray(window.NGT_MEMBERS_SEED) ? window.NGT_MEMBERS_SEED : [];
   const existingMembers = getData(STORAGE_KEYS.members, []);
-  if (!localStorage.getItem(STORAGE_KEYS.members) || (!existingMembers.length && seededMembers.length)) {
+  const seededMembersSignature = JSON.stringify(seededMembers);
+  const storedMembersSignature = localStorage.getItem(STORAGE_KEYS.membersSeedSignature) || "";
+  if (
+    !localStorage.getItem(STORAGE_KEYS.members) ||
+    (!existingMembers.length && seededMembers.length) ||
+    (seededMembers.length && storedMembersSignature !== seededMembersSignature)
+  ) {
     setData(STORAGE_KEYS.members, seededMembers);
+    localStorage.setItem(STORAGE_KEYS.membersSeedSignature, seededMembersSignature);
   }
 
   const seededAnnouncements = getConfiguredAnnouncements();
