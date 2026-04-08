@@ -276,7 +276,7 @@ a {
   background:
     linear-gradient(90deg, rgba(0, 0, 0, 0.56), rgba(0, 0, 0, 0.18)),
     linear-gradient(120deg, rgba(255, 215, 0, 0.08), rgba(255, 140, 0, 0.08)),
-    var(--hero-image, url("./NGT img.png"));
+    var(--hero-image, url("./cover pic/472057341_10162040474453260_5092529835833910460_n.jpg"));
   background-position: center, center, center;
   background-repeat: no-repeat, no-repeat, no-repeat;
   background-size: cover, cover, cover;
@@ -287,7 +287,7 @@ a {
   background:
     linear-gradient(90deg, rgba(34, 24, 0, 0.52), rgba(34, 24, 0, 0.12)),
     linear-gradient(120deg, rgba(255, 255, 255, 0.18), rgba(255, 140, 0, 0.34)),
-    var(--hero-image, url("./NGT img.png"));
+    var(--hero-image, url("./cover pic/472057341_10162040474453260_5092529835833910460_n.jpg"));
   background-position: center, center, 70% 50%;
   background-repeat: no-repeat, no-repeat, no-repeat;
   background-size: cover, cover, cover;
@@ -297,7 +297,7 @@ a {
   background:
     linear-gradient(90deg, rgba(0, 0, 0, 0.5), rgba(0, 0, 0, 0.12)),
     linear-gradient(120deg, rgba(255, 215, 0, 0.26), rgba(180, 90, 0, 0.42)),
-    var(--hero-image, url("./NGT img.png"));
+    var(--hero-image, url("./cover pic/472057341_10162040474453260_5092529835833910460_n.jpg"));
   background-position: center, center, center;
   background-repeat: no-repeat, no-repeat, no-repeat;
   background-size: cover, cover, cover;
@@ -2184,7 +2184,7 @@ hr {
     height: min(64vw, 320px);
     background-image:
       linear-gradient(180deg, rgba(0, 0, 0, 0.04), rgba(0, 0, 0, 0.18)),
-      var(--hero-image, url("./NGT img.png"));
+      var(--hero-image, url("./cover pic/472057341_10162040474453260_5092529835833910460_n.jpg"));
     background-size: 100% 100%, 100% auto;
     background-position: center top, center top;
     background-repeat: no-repeat, no-repeat;
