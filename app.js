@@ -61,6 +61,14 @@ const SITE_PAGE_INDEX = [
   },
   {
     type: "Page",
+    title: "History",
+    href: "history.html",
+    summary: "History and formation of NGT, its royal mandate, institutional roots, and continued purpose.",
+    keywords:
+      "history formation origin royal command privy council nyikem gongzhu tshogpa institutional legacy red scarf bhutan service tsa-wa-sum"
+  },
+  {
+    type: "Page",
     title: "Documents",
     href: "documents.html",
     summary: "Archive of official files including constitution, forms, notices, circulars, and downloadable records.",
