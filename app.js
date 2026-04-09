@@ -252,6 +252,8 @@ function mapRemoteMember(row) {
     address: normalizeText(row.address),
     phone: normalizeText(row.phone),
     email: normalizeText(row.email),
+    serviceStatus: normalizeText(row.service_status),
+    lifeStatus: normalizeText(row.life_status),
     lastPost: normalizeText(row.last_post),
     spouseOrKin: normalizeText(row.spouse_or_kin),
     knowledge: normalizeText(row.knowledge)
@@ -271,6 +273,8 @@ function mapMemberToRemote(member) {
     address: normalizeText(member.address),
     phone: normalizeText(member.phone),
     email: normalizeText(member.email),
+    service_status: normalizeText(member.serviceStatus),
+    life_status: normalizeText(member.lifeStatus),
     last_post: normalizeText(member.lastPost),
     spouse_or_kin: normalizeText(member.spouseOrKin),
     knowledge: normalizeText(member.knowledge)
@@ -1104,6 +1108,8 @@ function buildMemberPayload(source, existingMembers, currentMember = null) {
     address: normalizeText(source.address),
     phone: normalizeText(source.phone),
     email,
+    serviceStatus: normalizeText(source.serviceStatus).toLowerCase(),
+    lifeStatus: normalizeText(source.lifeStatus).toLowerCase(),
     lastPost: normalizeText(source.lastPost),
     spouseOrKin: normalizeText(source.spouseOrKin),
     knowledge: normalizeText(source.knowledge)
@@ -1138,6 +1144,8 @@ function membersToCsv(members) {
     "Nyikem Year",
     "Resignation Year",
     "Joined NGT",
+    "Service Status",
+    "Life Status",
     "CID No",
     "Date of Birth",
     "Address",
@@ -1154,6 +1162,8 @@ function membersToCsv(members) {
     member.nyikemYear,
     member.resignationYear,
     member.joinedYear,
+    member.serviceStatus,
+    member.lifeStatus,
     member.cidNo,
     member.dateOfBirth,
     member.address,
@@ -1172,15 +1182,69 @@ function initMembersPage() {
   const searchInput = document.getElementById("memberSearch");
   const yearFilter = document.getElementById("yearFilter");
   const nyikemFilter = document.getElementById("nyikemFilter");
+  const statusFilter = document.getElementById("statusFilter");
   const sortSelect = document.getElementById("memberSort");
   const resultCount = document.getElementById("memberResultCount");
   const modal = document.getElementById("profileModal");
   const profileContent = document.getElementById("profileContent");
   const closeProfile = document.getElementById("closeProfile");
+  const totalRedScarfCount = document.getElementById("totalRedScarfCount");
+  const inServiceCount = document.getElementById("inServiceCount");
+  const livingCount = document.getElementById("livingCount");
+  const deceasedCount = document.getElementById("deceasedCount");
+  const memberStrengthNote = document.getElementById("memberStrengthNote");
 
   if (!tableBody || !searchInput || !yearFilter || !nyikemFilter || !sortSelect || !resultCount || !modal || !profileContent) return;
 
   const getMembers = () => getData(STORAGE_KEYS.members, []);
+  function getLifeStatus(member) {
+    const explicitStatus = normalizeText(member.lifeStatus).toLowerCase();
+    if (["deceased", "dead", "late", "passed away"].includes(explicitStatus)) return "deceased";
+    if (["living", "alive"].includes(explicitStatus)) return "living";
+
+    const text = [member.fullName, member.lastPost, member.spouseOrKin].filter(Boolean).join(" ").toLowerCase();
+    if (/\b(deceased|dead|late|passed away)\b/.test(text)) return "deceased";
+    return "living";
+  }
+
+  function getServiceStatus(member) {
+    const explicitStatus = normalizeText(member.serviceStatus).toLowerCase();
+    if (["in-service", "in service", "serving", "active"].includes(explicitStatus)) return "in-service";
+    if (["retired", "not in service", "former"].includes(explicitStatus)) return "retired";
+
+    const text = [member.serviceStatus, member.lastPost].filter(Boolean).join(" ").toLowerCase();
+    if (/\b(in service|in-service|serving|active service)\b/.test(text)) return "in-service";
+    if (normalizeText(member.resignationYear) || /\bretired\b/.test(text)) return "retired";
+    return "retired";
+  }
+
+  function matchesStatusFilter(member, selectedStatus) {
+    if (!selectedStatus) return true;
+    if (selectedStatus === "in-service") return getServiceStatus(member) === "in-service";
+    if (selectedStatus === "deceased") return getLifeStatus(member) === "deceased";
+    if (selectedStatus === "living") return getLifeStatus(member) === "living";
+    return true;
+  }
+
+  function renderStrengthSummary(allMembers) {
+    if (!totalRedScarfCount || !inServiceCount || !livingCount || !deceasedCount) return;
+
+    const total = allMembers.length;
+    const living = allMembers.filter((member) => getLifeStatus(member) === "living").length;
+    const deceased = allMembers.filter((member) => getLifeStatus(member) === "deceased").length;
+    const inService = allMembers.filter((member) => getServiceStatus(member) === "in-service").length;
+
+    const formatStatCount = (value) => (Number(value) === 0 ? "0 (No records)" : String(value));
+    totalRedScarfCount.textContent = formatStatCount(total);
+    livingCount.textContent = formatStatCount(living);
+    deceasedCount.textContent = formatStatCount(deceased);
+    inServiceCount.textContent = formatStatCount(inService);
+
+    if (memberStrengthNote) {
+      memberStrengthNote.textContent =
+        "Auto-generated from member records. For best accuracy, maintain optional fields like serviceStatus and lifeStatus.";
+    }
+  }
 
   function profileField(label, value, extraClass = "") {
     const className = ["profile-item", extraClass].filter(Boolean).join(" ");
@@ -1233,6 +1297,8 @@ function initMembersPage() {
             ${profileField("Nyikem Year", selected.nyikemYear)}
             ${profileField("Resignation Year", selected.resignationYear)}
             ${profileField("Joined NGT", selected.joinedYear)}
+            ${profileField("Service Status", selected.serviceStatus)}
+            ${profileField("Life Status", selected.lifeStatus)}
           </div>
         </section>
 
@@ -1268,8 +1334,12 @@ function initMembersPage() {
     const keyword = searchInput.value.trim().toLowerCase();
     const selectedYear = yearFilter.value;
     const selectedNyikemYear = nyikemFilter.value;
+    const selectedStatus = statusFilter?.value || "";
     const selectedSort = sortSelect.value;
-    let members = getMembers();
+    const allMembers = getMembers();
+    let members = allMembers;
+
+    renderStrengthSummary(allMembers);
 
     members = members.filter((m) => {
       const matchesSearch =
@@ -1279,7 +1349,8 @@ function initMembersPage() {
           .some((value) => value.toLowerCase().includes(keyword));
       const matchesYear = !selectedYear || String(m.joinedYear) === selectedYear;
       const matchesNyikemYear = !selectedNyikemYear || String(m.nyikemYear) === selectedNyikemYear;
-      return matchesSearch && matchesYear && matchesNyikemYear;
+      const matchesStatus = matchesStatusFilter(m, selectedStatus);
+      return matchesSearch && matchesYear && matchesNyikemYear && matchesStatus;
     });
 
     members = members.sort((a, b) => compareMembers(a, b, selectedSort));
@@ -1327,6 +1398,7 @@ function initMembersPage() {
   searchInput.addEventListener("input", renderTable);
   yearFilter.addEventListener("change", renderTable);
   nyikemFilter.addEventListener("change", renderTable);
+  statusFilter?.addEventListener("change", renderTable);
   sortSelect.addEventListener("change", renderTable);
 
   populateYearFilter();
@@ -1385,6 +1457,7 @@ function initAdminPage() {
   const announcementRefreshBtn = document.getElementById("announcementRefreshBtn");
   const announcementList = document.getElementById("announcementAdminList");
   const announcementDeleteStatus = document.getElementById("announcementDeleteStatus");
+  const announcementDraftKey = "ngt_admin_announcement_draft";
   let adminSessionBootstrapComplete = false;
 
   if (
@@ -1439,12 +1512,72 @@ function initAdminPage() {
     announcementDeleteStatus.classList.toggle("status-note-error", Boolean(message && isError));
   }
 
+  function readAnnouncementDraft() {
+    try {
+      const raw = localStorage.getItem(announcementDraftKey);
+      if (!raw) return null;
+      const parsed = JSON.parse(raw);
+      return parsed && typeof parsed === "object" ? parsed : null;
+    } catch {
+      return null;
+    }
+  }
+
+  function hasAnnouncementDraft(draft = readAnnouncementDraft()) {
+    if (!draft) return false;
+    return Boolean(
+      normalizeText(draft.id) ||
+        normalizeText(draft.title) ||
+        normalizeText(draft.date) ||
+        normalizeText(draft.body) ||
+        normalizeText(draft.imageUrl)
+    );
+  }
+
+  function saveAnnouncementDraft() {
+    const draft = {
+      id: normalizeText(announcementIdInput.value),
+      imageUrl: normalizeText(announcementCurrentImageUrlInput.value),
+      title: normalizeText(announcementTitleInput.value),
+      date: normalizeText(announcementDateInput.value),
+      body: normalizeText(announcementBodyInput.value)
+    };
+
+    if (!hasAnnouncementDraft(draft)) {
+      localStorage.removeItem(announcementDraftKey);
+      return;
+    }
+    localStorage.setItem(announcementDraftKey, JSON.stringify(draft));
+  }
+
+  function clearAnnouncementDraft() {
+    localStorage.removeItem(announcementDraftKey);
+  }
+
+  function restoreAnnouncementDraft() {
+    const draft = readAnnouncementDraft();
+    if (!hasAnnouncementDraft(draft)) return false;
+
+    announcementIdInput.value = draft.id || "";
+    announcementCurrentImageUrlInput.value = draft.imageUrl || "";
+    announcementTitleInput.value = draft.title || "";
+    announcementDateInput.value = draft.date || "";
+    announcementBodyInput.value = draft.body || "";
+    announcementImageFileInput.value = "";
+    announcementImagePreview.src = draft.imageUrl || "";
+    announcementImagePreviewWrap.classList.toggle("hidden", !draft.imageUrl);
+    announcementStatus.textContent = "Draft restored. Continue editing and publish when ready.";
+    return true;
+  }
+
   const formFields = {
     fullName: document.getElementById("adminFullName"),
     serviceYear: document.getElementById("adminServiceYear"),
     nyikemYear: document.getElementById("adminNyikemYear"),
     resignationYear: document.getElementById("adminResignationYear"),
     joinedYear: document.getElementById("adminJoinedYear"),
+    serviceStatus: document.getElementById("adminServiceStatus"),
+    lifeStatus: document.getElementById("adminLifeStatus"),
     cidNo: document.getElementById("adminCidNo"),
     dateOfBirth: document.getElementById("adminDateOfBirth"),
     phone: document.getElementById("adminPhone"),
@@ -1535,6 +1668,7 @@ function initAdminPage() {
     announcementStatus.textContent = item
       ? `Editing announcement: ${item.title}`
       : "Create or update a news item for the public News page.";
+    saveAnnouncementDraft();
   }
 
   function getFilteredAnnouncements() {
@@ -1728,8 +1862,12 @@ function initAdminPage() {
       // Keep existing local/static announcements if remote refresh is not available yet.
     }
     renderAnnouncementAdminList();
-    fillAnnouncementForm();
-    setAdminSection("none");
+    if (restoreAnnouncementDraft()) {
+      setAdminSection("news");
+    } else {
+      fillAnnouncementForm();
+      setAdminSection("none");
+    }
   }
 
   loginForm.addEventListener("submit", async (event) => {
@@ -1927,6 +2065,10 @@ function initAdminPage() {
 
   announcementFormResetBtn.addEventListener("click", () => fillAnnouncementForm());
 
+  [announcementTitleInput, announcementDateInput, announcementBodyInput].forEach((field) => {
+    field.addEventListener("input", saveAnnouncementDraft);
+  });
+
   announcementSearchInput.addEventListener("input", renderAnnouncementAdminList);
   announcementSortSelect.addEventListener("change", renderAnnouncementAdminList);
 
@@ -1974,6 +2116,7 @@ function initAdminPage() {
       await saveAnnouncementToSupabase(payload, existingItem);
       await refreshAnnouncementsFromSupabase();
       renderAnnouncementAdminList();
+      clearAnnouncementDraft();
       fillAnnouncementForm();
       setAdminSection("news");
       setAnnouncementDeleteStatus("");
@@ -2028,12 +2171,13 @@ function initAdminPage() {
   });
 
   announcementImageFileInput.addEventListener("change", () => {
-    const file = announcementImageFileInput.files?.[0];
-    if (!file) {
-      announcementImagePreview.src = announcementCurrentImageUrlInput.value || "";
-      announcementImagePreviewWrap.classList.toggle("hidden", !announcementImagePreview.src);
-      return;
-    }
+      const file = announcementImageFileInput.files?.[0];
+      if (!file) {
+        announcementImagePreview.src = announcementCurrentImageUrlInput.value || "";
+        announcementImagePreviewWrap.classList.toggle("hidden", !announcementImagePreview.src);
+        saveAnnouncementDraft();
+        return;
+      }
 
     const previewUrl = URL.createObjectURL(file);
     announcementImagePreview.src = previewUrl;

@@ -1379,7 +1379,7 @@ tbody tr:hover {
 
 .member-overview {
   display: grid;
-  grid-template-columns: repeat(3, minmax(0, 1fr));
+  grid-template-columns: repeat(4, minmax(0, 1fr));
   gap: 1rem;
   margin-bottom: 1rem;
 }
@@ -1397,6 +1397,23 @@ tbody tr:hover {
   margin: 0.4rem 0 0.45rem;
   font-family: "Georgia", serif;
   font-size: 1.2rem;
+}
+
+.stat-number {
+  font-size: 28px;
+  font-weight: 700;
+}
+
+.stat-card {
+  transition: transform 0.3s ease;
+}
+
+.stat-card:hover {
+  transform: translateY(-4px);
+}
+
+.stat-card.primary {
+  border: 2px solid #f59e0b;
 }
 
 .overview-card p,

@@ -59,6 +59,39 @@
 
     <section class="section">
       <div class="container">
+        <div class="card">
+          <div class="section-head">
+            <div>
+              <p class="eyebrow">Member Strength</p>
+              <h2 class="section-title">Red Scarf Officers Summary</h2>
+              <p class="muted" id="memberStrengthNote">Auto-generated from member records.</p>
+            </div>
+          </div>
+
+          <div class="member-overview">
+            <article class="overview-card stat-card primary">
+              <span class="impact-label">Total Strength</span>
+              <strong id="totalRedScarfCount" class="stat-number">0</strong>
+              <p>Total red scarf officers in the member records.</p>
+            </article>
+            <article class="overview-card stat-card primary">
+              <span class="impact-label">In Service</span>
+              <strong id="inServiceCount" class="stat-number">0</strong>
+              <p>Members currently marked as in-service.</p>
+            </article>
+            <article class="overview-card stat-card primary">
+              <span class="impact-label">Living</span>
+              <strong id="livingCount" class="stat-number">0</strong>
+              <p>Members classified as living.</p>
+            </article>
+            <article class="overview-card stat-card primary">
+              <span class="impact-label">Deceased</span>
+              <strong id="deceasedCount" class="stat-number">0</strong>
+              <p>Members classified as deceased.</p>
+            </article>
+          </div>
+        </div>
+
         <div class="card data-card">
           <div class="section-head">
             <div>
@@ -77,6 +110,12 @@
             </select>
             <select id="nyikemFilter">
               <option value="">All Nyikem Years</option>
+            </select>
+            <select id="statusFilter">
+              <option value="">All Officer Status</option>
+              <option value="in-service">In Service</option>
+              <option value="living">Living</option>
+              <option value="deceased">Deceased</option>
             </select>
             <select id="memberSort">
               <option value="name-asc">Sort by Name</option>

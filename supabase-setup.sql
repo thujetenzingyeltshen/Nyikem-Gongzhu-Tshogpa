@@ -24,6 +24,10 @@ create table if not exists public.members (
   updated_at timestamptz not null default now()
 );
 
+alter table if exists public.members
+  add column if not exists service_status text default '',
+  add column if not exists life_status text default '';
+
 create table if not exists public.admin_users (
   user_id uuid primary key references auth.users (id) on delete cascade,
   email text,

@@ -48,6 +48,7 @@ values ('YOUR-USER-UUID-HERE', 'admin@example.com');
 - Public visitors can view members from the online database
 - Admin users can sign in at `admin.html`
 - Only users listed in `admin_users` can add, edit, or delete members
+- For the new member strength controls (`service_status` and `life_status`), run `supabase-setup.sql` again in SQL Editor to add missing columns on older projects
 
 ## Features
 
