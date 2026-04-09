@@ -819,6 +819,12 @@ body[data-page="news"] .announcement-list {
   gap: 1.2rem;
 }
 
+body[data-page="news"] .announcement-item {
+  border-left: 0;
+  border: 1px solid rgba(255, 140, 0, 0.12);
+  background: linear-gradient(180deg, rgba(255, 255, 255, 0.99), rgba(255, 247, 233, 0.96));
+}
+
 .announcement-item,
 .doc-item,
 .admin-list-item {
@@ -854,6 +860,19 @@ body[data-page="news"] .announcement-list {
   background: rgba(255, 248, 224, 0.75);
 }
 
+.news-card-photo-wrap {
+  margin-bottom: 1rem;
+  border-radius: 14px;
+}
+
+.news-card-photo {
+  width: 100%;
+  height: 180px;
+  max-height: none;
+  object-fit: cover;
+  border-radius: 10px;
+}
+
 .announcement-upload-preview {
   padding: 0.6rem 0;
 }
@@ -867,7 +886,7 @@ body[data-page="news"] .announcement-list {
 }
 
 .announcement-item:hover {
-  transform: translateY(-5px);
+  transform: translateY(-4px);
   box-shadow: 0 12px 25px rgba(0, 0, 0, 0.1);
   border-color: rgba(255, 140, 0, 0.22);
 }
@@ -888,8 +907,8 @@ body[data-page="news"] .announcement-list {
 
 .announcement-date {
   margin: 0;
-  font-size: 0.82rem;
-  color: var(--ngt-muted);
+  font-size: 13px;
+  color: #777;
 }
 
 .announcement-item h3 {
@@ -911,6 +930,13 @@ body[data-page="news"] .announcement-list {
   color: var(--ngt-text);
 }
 
+.preview-text {
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+}
+
 .announcement-actions {
   display: flex;
   align-items: center;
@@ -920,17 +946,20 @@ body[data-page="news"] .announcement-list {
 }
 
 .announcement-read-more {
-  padding: 0;
+  padding: 8px 16px;
   border: 0;
+  border-radius: 20px;
   font: inherit;
   font-weight: 700;
-  color: var(--ngt-orange-deep);
-  background: transparent;
+  color: #fff;
+  background: #f59e0b;
   cursor: pointer;
+  text-decoration: none;
 }
 
 .announcement-read-more:hover {
-  text-decoration: underline;
+  background: #dc8e07;
+  text-decoration: none;
 }
 
 .badge {
@@ -944,6 +973,10 @@ body[data-page="news"] .announcement-list {
   text-transform: uppercase;
   color: #fff;
   background: linear-gradient(135deg, #ff8c00, #ff6a00);
+}
+
+.badge-obituary {
+  background: #7c2d12;
 }
 
 .search-results,
@@ -1541,6 +1574,20 @@ body[data-page="members"] .data-card::before {
   box-shadow: var(--ngt-shadow-soft);
 }
 
+.news-detail-card-obituary {
+  background: linear-gradient(180deg, rgba(255, 255, 255, 0.99), rgba(248, 245, 239, 0.98));
+  border-color: rgba(140, 126, 92, 0.16);
+}
+
+.memorial-title {
+  margin: 0 0 0.75rem;
+  text-align: center;
+  font-size: 14px;
+  letter-spacing: 2px;
+  text-transform: uppercase;
+  color: #888;
+}
+
 .news-detail-card h2 {
   margin: 0 0 0.65rem;
   font-size: clamp(1.8rem, 2.6vw, 2.5rem);
@@ -1553,6 +1600,24 @@ body[data-page="members"] .data-card::before {
   max-width: 800px;
   line-height: 1.7;
   white-space: pre-line;
+}
+
+.news-content {
+  max-width: 800px;
+}
+
+.news-content-paragraph {
+  margin: 0 0 18px;
+  line-height: 1.7;
+}
+
+.news-content .lead-paragraph {
+  font-size: 18px;
+  font-weight: 500;
+}
+
+.news-content .credit-paragraph {
+  color: var(--ngt-muted);
 }
 
 .news-detail-meta .badge {
@@ -1577,6 +1642,28 @@ body[data-page="members"] .data-card::before {
   object-fit: contain;
   object-position: center top;
   border-radius: 18px;
+}
+
+.news-detail-card .obituary-image-wrap {
+  width: fit-content;
+  margin: 1.1rem auto 1.5rem;
+  padding: 0.45rem;
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.85);
+  box-shadow: 0 10px 24px rgba(70, 60, 35, 0.14);
+}
+
+.news-detail-card .obituary-image {
+  width: 200px;
+  height: 200px;
+  object-fit: cover;
+  object-position: center;
+  border-radius: 50%;
+}
+
+.divider {
+  border-top: 1px solid #ddd;
+  margin: 30px 0 18px;
 }
 
 .news-detail-card .announcement-full:first-of-type,

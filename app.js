@@ -323,6 +323,7 @@ function mapRemoteAnnouncement(row) {
     id: row.id,
     title: normalizeText(row.title),
     date: normalizeText(row.date),
+    category: normalizeText(row.category),
     imageUrl: sanitizeImageUrl(row.image_url),
     body: normalizeText(row.body)
   };
@@ -332,6 +333,7 @@ function mapAnnouncementToRemote(item) {
   return {
     title: normalizeText(item.title),
     date: normalizeText(item.date),
+    category: normalizeText(item.category),
     image_url: sanitizeImageUrl(item.imageUrl),
     body: normalizeText(item.body)
   };
@@ -665,7 +667,18 @@ function getSearchSnippet(values, term) {
 }
 
 function inferAnnouncementCategory(item) {
+  const explicitCategory = normalizeText(item.category);
+  if (explicitCategory) return explicitCategory;
   const haystack = `${item.title || ""} ${item.body || ""}`.toLowerCase();
+  if (
+    haystack.includes("obituary") ||
+    haystack.includes("in loving memory") ||
+    haystack.includes("passed away") ||
+    haystack.includes("demise") ||
+    haystack.includes("late ")
+  ) {
+    return "Obituary";
+  }
   if (haystack.includes("agm")) return "AGM";
   if (haystack.includes("meeting")) return "Meeting";
   if (haystack.includes("policy")) return "Policy";
@@ -686,19 +699,22 @@ function renderAnnouncementCard(item, options = {}) {
   const category = inferAnnouncementCategory(item);
   const excerpt = getAnnouncementExcerpt(item, mode === "preview" ? 120 : 170);
   const detailHref = `news.html?announcement=${encodeURIComponent(item.id)}`;
-  const actionMarkup =
-    mode === "news"
-      ? `<div class="announcement-actions"><a class="announcement-read-more" href="${detailHref}">Read More -&gt;</a></div>`
-      : `<div class="announcement-actions"><a class="announcement-read-more" href="${detailHref}">Read More -&gt;</a></div>`;
+  const categoryClass = `badge-${category.toLowerCase().replace(/\s+/g, "-")}`;
+  const imageMarkup =
+    mode === "news" && item.imageUrl
+      ? `<div class="announcement-photo-wrap news-card-photo-wrap"><img class="announcement-photo news-card-photo" src="${escapeHTML(item.imageUrl)}" alt="${escapeHTML(item.title)}" loading="lazy" decoding="async" /></div>`
+      : "";
+  const actionMarkup = `<div class="announcement-actions"><a class="announcement-read-more read-btn" href="${detailHref}">View Full Notice</a></div>`;
 
   return `
     <article class="announcement-item">
+      ${imageMarkup}
       <div class="announcement-meta">
-        <span class="badge">${escapeHTML(category)}</span>
+        <span class="badge ${escapeHTML(categoryClass)}">${escapeHTML(category)}</span>
         <p class="announcement-date">${escapeHTML(formatDisplayDate(item.date))}</p>
       </div>
       <h3>${escapeHTML(item.title)}</h3>
-      <p class="announcement-excerpt">${escapeHTML(excerpt)}</p>
+      <p class="announcement-excerpt preview-text">${escapeHTML(excerpt)}</p>
       ${actionMarkup}
     </article>
   `;
@@ -706,17 +722,39 @@ function renderAnnouncementCard(item, options = {}) {
 
 function renderAnnouncementDetail(item) {
   const category = inferAnnouncementCategory(item);
+  const isObituary = category === "Obituary";
+  const paragraphs = String(item.body || "")
+    .split(/\n\s*\n/)
+    .map((paragraph) => paragraph.trim())
+    .filter(Boolean);
+  const detailParagraphs = paragraphs.length ? paragraphs : [String(item.body || "").trim()].filter(Boolean);
+  const bodyMarkup = detailParagraphs
+    .map((paragraph, index) => {
+      const isCredit = /^credit\b/i.test(paragraph) || /^source\b/i.test(paragraph);
+      const dividerMarkup = isCredit ? '<div class="divider" aria-hidden="true"></div>' : "";
+      const paragraphClass = [
+        "announcement-full",
+        "news-content-paragraph",
+        index === 0 ? "lead-paragraph" : "",
+        isCredit ? "credit-paragraph" : ""
+      ]
+        .filter(Boolean)
+        .join(" ");
+      return `${dividerMarkup}<p class="${paragraphClass}">${escapeHTML(paragraph)}</p>`;
+    })
+    .join("");
   return `
     <section class="news-detail-shell">
       <a class="btn btn-outline news-detail-back back-btn" href="news.html">Back to News</a>
-      <article class="news-detail-card">
+      <article class="news-detail-card ${isObituary ? "news-detail-card-obituary" : ""}">
+        ${isObituary ? '<p class="memorial-title">In Loving Memory</p>' : ""}
         <div class="announcement-meta news-detail-meta">
           <span class="badge">${escapeHTML(category)}</span>
           <p class="announcement-date">${escapeHTML(formatDisplayDate(item.date))}</p>
         </div>
         <h2>${escapeHTML(item.title)}</h2>
-        ${item.imageUrl ? `<div class="announcement-photo-wrap"><img class="announcement-photo" src="${escapeHTML(item.imageUrl)}" alt="${escapeHTML(item.title)}" loading="eager" decoding="async" /></div>` : ""}
-        <p class="announcement-full">${escapeHTML(item.body)}</p>
+        ${item.imageUrl ? `<div class="announcement-photo-wrap ${isObituary ? "obituary-image-wrap" : ""}"><img class="announcement-photo ${isObituary ? "obituary-image" : ""}" src="${escapeHTML(item.imageUrl)}" alt="${escapeHTML(item.title)}" loading="eager" decoding="async" /></div>` : ""}
+        <div class="news-content">${bodyMarkup}</div>
       </article>
     </section>
   `;
@@ -1059,7 +1097,7 @@ function initNewsPage() {
   }
 
   if (summary) {
-    summary.textContent = `${items.length} official update${items.length === 1 ? "" : "s"} available`;
+    summary.textContent = `Showing ${items.length} official notice${items.length === 1 ? "" : "s"}`;
   }
   list.innerHTML = items.length
     ? items.map((item) => renderAnnouncementCard(item, { mode: "news" })).join("")
@@ -1446,6 +1484,7 @@ function initAdminPage() {
   const announcementCurrentImageUrlInput = document.getElementById("announcementCurrentImageUrl");
   const announcementTitleInput = document.getElementById("announcementTitle");
   const announcementDateInput = document.getElementById("announcementDate");
+  const announcementCategoryInput = document.getElementById("announcementCategory");
   const announcementImageFileInput = document.getElementById("announcementImageFile");
   const announcementImagePreviewWrap = document.getElementById("announcementImagePreviewWrap");
   const announcementImagePreview = document.getElementById("announcementImagePreview");
@@ -1491,6 +1530,7 @@ function initAdminPage() {
     !announcementCurrentImageUrlInput ||
     !announcementTitleInput ||
     !announcementDateInput ||
+    !announcementCategoryInput ||
     !announcementImageFileInput ||
     !announcementImagePreviewWrap ||
     !announcementImagePreview ||
@@ -1529,6 +1569,7 @@ function initAdminPage() {
       normalizeText(draft.id) ||
         normalizeText(draft.title) ||
         normalizeText(draft.date) ||
+        normalizeText(draft.category) ||
         normalizeText(draft.body) ||
         normalizeText(draft.imageUrl)
     );
@@ -1540,6 +1581,7 @@ function initAdminPage() {
       imageUrl: normalizeText(announcementCurrentImageUrlInput.value),
       title: normalizeText(announcementTitleInput.value),
       date: normalizeText(announcementDateInput.value),
+      category: normalizeText(announcementCategoryInput.value),
       body: normalizeText(announcementBodyInput.value)
     };
 
@@ -1562,6 +1604,7 @@ function initAdminPage() {
     announcementCurrentImageUrlInput.value = draft.imageUrl || "";
     announcementTitleInput.value = draft.title || "";
     announcementDateInput.value = draft.date || "";
+    announcementCategoryInput.value = draft.category || "";
     announcementBodyInput.value = draft.body || "";
     announcementImageFileInput.value = "";
     announcementImagePreview.src = draft.imageUrl || "";
@@ -1661,6 +1704,7 @@ function initAdminPage() {
     announcementCurrentImageUrlInput.value = item?.imageUrl || "";
     announcementTitleInput.value = item?.title || "";
     announcementDateInput.value = item?.date || "";
+    announcementCategoryInput.value = item?.category || "";
     announcementImageFileInput.value = "";
     announcementBodyInput.value = item?.body || "";
     announcementImagePreview.src = item?.imageUrl || "";
@@ -2065,7 +2109,7 @@ function initAdminPage() {
 
   announcementFormResetBtn.addEventListener("click", () => fillAnnouncementForm());
 
-  [announcementTitleInput, announcementDateInput, announcementBodyInput].forEach((field) => {
+  [announcementTitleInput, announcementDateInput, announcementCategoryInput, announcementBodyInput].forEach((field) => {
     field.addEventListener("input", saveAnnouncementDraft);
   });
 
@@ -2097,6 +2141,7 @@ function initAdminPage() {
       id: existingItem?.id || `announcement-${Date.now()}`,
       title: normalizeText(announcementTitleInput.value),
       date: normalizeText(announcementDateInput.value),
+      category: normalizeText(announcementCategoryInput.value),
       imageUrl: normalizeText(announcementCurrentImageUrlInput.value),
       body: normalizeText(announcementBodyInput.value)
     };
