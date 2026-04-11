@@ -905,33 +905,36 @@ function initHomePage() {
     {
       theme: "service",
       image: "./cover pic/472057341_10162040474453260_5092529835833910460_n.jpg",
-      title: "Nyikem Gongzhu Tshogpa",
+      titleHtml: 'Nyikem <span class="hero-highlight">Gongzhu</span> Tshogpa',
       subtitle: "Association of Retired Red Scarf Officers",
       text:
         "A national association of retired Nyikem recipients committed to service, unity, and Bhutanese values.",
       tag: "Service",
+      imagePosition: "62% center",
       caption:
         "A respected national platform for solidarity, continuity, and meaningful service."
     },
     {
       theme: "unity",
       image: "./cover pic/bf01ff50-c098-4083-8ef5-31413f2dfca8.jpg",
-      title: "Strengthening Fellowship and Collective Responsibility",
+      titleHtml: 'Strengthening <span class="hero-highlight">Fellowship</span> and Collective Responsibility',
       subtitle: "Association of Retired Red Scarf Officers",
       text:
         "A respectful national platform that keeps members connected through solidarity, shared purpose, and service.",
       tag: "Unity",
+      imagePosition: "74% 48%",
       caption:
         "Building a dignified collective voice across Bhutan."
     },
     {
       theme: "heritage",
       image: "./cover pic/NGT WITH HM2025-11-08 at 21.02.54.jpeg",
-      title: "Preserving Bhutanese Values and Cultural Identity",
+      titleHtml: 'Preserving <span class="hero-highlight">Bhutanese Values</span> and Cultural Identity',
       subtitle: "Association of Retired Red Scarf Officers",
       text:
         "NGT protects heritage, discipline, and a culture of meaningful service for future generations.",
       tag: "Heritage",
+      imagePosition: "58% center",
       caption:
         "Safeguarding values, tradition, and continuity."
     }
@@ -946,7 +949,8 @@ function initHomePage() {
 
     stage.dataset.theme = slide.theme;
     stage.style.setProperty("--hero-image", `url("${slide.image}")`);
-    heroTitle.textContent = slide.title;
+    stage.style.setProperty("--hero-position", slide.imagePosition || "center");
+    heroTitle.innerHTML = slide.titleHtml || slide.title;
     heroSubtitle.textContent = slide.subtitle;
     heroText.textContent = slide.text;
     heroCaption.textContent = slide.caption;
