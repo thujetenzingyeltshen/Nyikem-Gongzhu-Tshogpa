@@ -2265,8 +2265,8 @@ hr {
   }
 
   .section {
-    padding-top: 2.4rem;
-    padding-bottom: 2.4rem;
+    padding-top: 2.1rem;
+    padding-bottom: 2.1rem;
   }
 
   .hero {
@@ -2319,6 +2319,8 @@ hr {
   .hero-copy {
     max-width: 100%;
     width: 100%;
+    margin-top: 0;
+    margin-left: 0;
     padding: 0.95rem 0.85rem 1rem;
   }
 
@@ -2391,8 +2393,8 @@ hr {
   }
 
   .page-hero {
-    padding-top: 1.1rem;
-    padding-bottom: 0.75rem;
+    padding-top: 0.95rem;
+    padding-bottom: 0.65rem;
   }
 
   .page-hero-card,
@@ -2405,6 +2407,7 @@ hr {
   .contact-card,
   .contact-detail-item {
     padding: 1rem;
+    margin-bottom: 0;
   }
 
   .section-title {
@@ -2422,6 +2425,39 @@ hr {
     margin-bottom: 0.65rem;
     font-size: 0.74rem;
     letter-spacing: 0.14em;
+  }
+
+  .content-grid,
+  .info-ribbon,
+  .impact-grid,
+  .announcement-grid,
+  .contact-side-column,
+  .contact-card-grid,
+  .service-summary-grid,
+  .search-results-grid {
+    gap: 0.9rem;
+  }
+
+  .section-head {
+    margin-bottom: 0.9rem;
+  }
+
+  .section-head a {
+    align-self: flex-start;
+  }
+
+  .quick-links,
+  .clean-list {
+    padding-left: 1rem;
+  }
+
+  .quick-links li,
+  .clean-list li {
+    margin-bottom: 0.45rem;
+  }
+
+  .top-gap {
+    margin-top: 1rem;
   }
 
   .table-wrap {
@@ -2621,7 +2657,7 @@ hr {
   .contact-card,
   .contact-detail-item {
     padding: 16px;
-    margin-bottom: 14px;
+    margin-bottom: 0;
   }
 
   .hero-actions .btn,
@@ -2737,6 +2773,8 @@ hr {
   }
 
   .hero-copy {
+    margin-top: 0;
+    margin-left: 0;
     padding: 0.8rem 0.75rem 0.9rem;
   }
 
@@ -2757,6 +2795,22 @@ hr {
   .quick-tile {
     min-height: 86px;
     padding: 0.75rem;
+  }
+
+  .page-hero-card,
+  .card,
+  .ribbon-card,
+  .impact-card,
+  .announcement-item,
+  .overview-card,
+  .service-summary-card,
+  .contact-card,
+  .contact-detail-item {
+    border-radius: 18px;
+  }
+
+  .section-head {
+    margin-bottom: 0.8rem;
   }
 
   .quick-tile-icon {
