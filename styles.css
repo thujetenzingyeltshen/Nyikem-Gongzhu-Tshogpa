@@ -990,7 +990,9 @@ body[data-page="news"] .announcement-item {
 }
 
 .badge-obituary {
-  background: #7c2d12;
+  color: #fff8ef;
+  background: linear-gradient(135deg, #c96f12, #e8890b);
+  box-shadow: 0 8px 18px rgba(216, 111, 0, 0.18);
 }
 
 .search-results,

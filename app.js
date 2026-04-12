@@ -722,6 +722,7 @@ function renderAnnouncementCard(item, options = {}) {
 
 function renderAnnouncementDetail(item) {
   const category = inferAnnouncementCategory(item);
+  const categoryClass = `badge-${category.toLowerCase().replace(/\s+/g, "-")}`;
   const isObituary = category === "Obituary";
   const paragraphs = String(item.body || "")
     .split(/\n\s*\n/)
@@ -749,7 +750,7 @@ function renderAnnouncementDetail(item) {
       <article class="news-detail-card ${isObituary ? "news-detail-card-obituary" : ""}">
         ${isObituary ? '<p class="memorial-title">In Loving Memory</p>' : ""}
         <div class="announcement-meta news-detail-meta">
-          <span class="badge">${escapeHTML(category)}</span>
+          <span class="badge ${escapeHTML(categoryClass)}">${escapeHTML(category)}</span>
           <p class="announcement-date">${escapeHTML(formatDisplayDate(item.date))}</p>
         </div>
         <h2>${escapeHTML(item.title)}</h2>
