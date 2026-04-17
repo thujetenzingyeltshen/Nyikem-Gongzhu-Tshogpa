@@ -599,6 +599,13 @@ function setupLanguagePlaceholder() {
   btn.title = "Dzongkha translation is not published yet.";
 }
 
+function updateFooterYear() {
+  const footerBottom = document.querySelector(".footer-bottom");
+  if (!footerBottom) return;
+  const year = new Date().getFullYear();
+  footerBottom.textContent = `© ${year} Nyikem Gongzhu Tshogpa | Kingdom of Bhutan`;
+}
+
 /* ------------------------------
    Announcement Helpers
 ------------------------------ */
@@ -766,10 +773,33 @@ function setupGlobalSearchNav() {
 
   if (!searchToggle || !searchForm || !searchInput) return;
 
+  const closeSearch = () => {
+    if (!searchForm.classList.contains("hidden")) {
+      searchForm.classList.add("hidden");
+      searchToggle.setAttribute("aria-expanded", "false");
+      searchToggle.setAttribute("aria-label", "Open search");
+    }
+  };
+
   searchToggle.addEventListener("click", () => {
     const isHidden = searchForm.classList.toggle("hidden");
     searchToggle.setAttribute("aria-expanded", String(!isHidden));
-    if (!isHidden) searchInput.focus();
+    searchToggle.setAttribute("aria-label", isHidden ? "Open search" : "Close search");
+    if (!isHidden) {
+      searchInput.focus();
+    }
+  });
+
+  document.addEventListener("click", (event) => {
+    const target = event.target;
+    if (!(target instanceof Node)) return;
+    if (searchForm.classList.contains("hidden")) return;
+    if (searchForm.contains(target) || searchToggle.contains(target)) return;
+    closeSearch();
+  });
+
+  document.addEventListener("keydown", (event) => {
+    if (event.key === "Escape") closeSearch();
   });
 
   searchForm.addEventListener("submit", (event) => {
@@ -2400,6 +2430,7 @@ async function init() {
   setupNavigation();
   setupLanguagePlaceholder();
   setupGlobalSearchNav();
+  updateFooterYear();
 
   if (page === "home") initHomePage();
   if (page === "news") initNewsPage();
