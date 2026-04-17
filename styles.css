@@ -1703,6 +1703,33 @@ body[data-page="members"] .data-card::before {
   margin-bottom: 0;
 }
 
+.service-main-section {
+  border-top: 1px solid rgba(34, 34, 34, 0.08);
+  margin-top: 2.4rem;
+  padding-top: 2.4rem;
+}
+
+.service-hero-card {
+  max-width: 860px;
+  box-shadow: 0 18px 40px rgba(67, 41, 10, 0.12);
+}
+
+.service-hero-card h1 {
+  max-width: 720px;
+}
+
+.service-hero-card p:not(.eyebrow) {
+  max-width: 760px;
+  line-height: 1.6;
+}
+
+.service-hero-note {
+  margin: 1rem 0 0;
+  font-size: 0.95rem;
+  font-weight: 700;
+  color: var(--ngt-orange-deep);
+}
+
 .service-picker {
   grid-template-columns: minmax(260px, 420px);
 }
@@ -1714,18 +1741,52 @@ body[data-page="members"] .data-card::before {
 .service-controls {
   display: grid;
   grid-template-columns: minmax(220px, 1.3fr) minmax(220px, 1fr) minmax(180px, 0.7fr);
-  gap: 0.9rem;
+  gap: 1rem;
+}
+
+.service-field {
+  position: relative;
+  display: flex;
+  align-items: center;
+}
+
+.service-field-icon {
+  position: absolute;
+  left: 14px;
+  display: inline-flex;
+  color: rgba(100, 68, 30, 0.75);
+  pointer-events: none;
 }
 
 .service-controls input,
 .service-controls select {
   width: 100%;
-  min-height: 52px;
-  padding: 0.8rem 0.95rem;
-  border: 1px solid rgba(34, 34, 34, 0.13);
-  border-radius: 14px;
+  min-height: 54px;
+  padding: 0.8rem 0.95rem 0.8rem 2.65rem;
+  border: 1px solid rgba(34, 34, 34, 0.12);
+  border-radius: 12px;
   font: inherit;
-  background: rgba(255, 255, 255, 0.9);
+  background: rgba(255, 255, 255, 0.96);
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.04);
+  transition: border-color 0.2s ease, box-shadow 0.2s ease, transform 0.2s ease;
+}
+
+.service-controls input:focus,
+.service-controls select:focus {
+  outline: none;
+  border-color: rgba(216, 111, 0, 0.45);
+  box-shadow: 0 4px 14px rgba(216, 111, 0, 0.12);
+  transform: translateY(-1px);
+}
+
+.service-result-summary {
+  margin: 0.9rem 0 0;
+  padding: 0.7rem 0.85rem;
+  border-radius: 12px;
+  background: rgba(255, 248, 224, 0.7);
+  border: 1px solid rgba(255, 140, 0, 0.18);
+  color: #664b2f;
+  font-weight: 600;
 }
 
 .service-summary-grid {
@@ -1740,6 +1801,12 @@ body[data-page="members"] .data-card::before {
   background: linear-gradient(145deg, rgba(255, 248, 224, 0.98), rgba(255, 230, 159, 0.95));
   border: 1px solid rgba(255, 140, 0, 0.12);
   box-shadow: var(--ngt-shadow-soft);
+  transition: transform 0.2s ease, box-shadow 0.2s ease;
+}
+
+.service-summary-card:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 6px 20px rgba(0, 0, 0, 0.08);
 }
 
 .service-summary-label {

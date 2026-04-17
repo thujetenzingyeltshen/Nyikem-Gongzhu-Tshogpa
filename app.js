@@ -729,19 +729,17 @@ function renderAnnouncementDetail(item) {
     .map((paragraph) => paragraph.trim())
     .filter(Boolean);
   const detailParagraphs = paragraphs.length ? paragraphs : [String(item.body || "").trim()].filter(Boolean);
-  const bodyMarkup = detailParagraphs
+  const visibleParagraphs = detailParagraphs.filter((paragraph) => !/^credit\b/i.test(paragraph) && !/^source\b/i.test(paragraph));
+  const bodyMarkup = visibleParagraphs
     .map((paragraph, index) => {
-      const isCredit = /^credit\b/i.test(paragraph) || /^source\b/i.test(paragraph);
-      const dividerMarkup = isCredit ? '<div class="divider" aria-hidden="true"></div>' : "";
       const paragraphClass = [
         "announcement-full",
         "news-content-paragraph",
-        index === 0 ? "lead-paragraph" : "",
-        isCredit ? "credit-paragraph" : ""
+        index === 0 ? "lead-paragraph" : ""
       ]
         .filter(Boolean)
         .join(" ");
-      return `${dividerMarkup}<p class="${paragraphClass}">${escapeHTML(paragraph)}</p>`;
+      return `<p class="${paragraphClass}">${escapeHTML(paragraph)}</p>`;
     })
     .join("");
   return `
@@ -2309,9 +2307,9 @@ function initServicesPage() {
   const select = document.getElementById("serviceBatchSelect");
   const yearFilter = document.getElementById("serviceYearFilter");
   const searchInput = document.getElementById("serviceSearch");
+  const resultSummary = document.getElementById("serviceResultSummary");
   const sections = document.querySelectorAll(".service-batch");
-  const tableBody = document.getElementById("gmcDutyTableBody");
-  const totalMembers = document.getElementById("gmcTotalMembers");
+  const tableBodies = document.querySelectorAll(".gmc-duty-table-body");
   if (!select || !sections.length) return;
 
   function renderSelectedBatch() {
@@ -2324,34 +2322,60 @@ function initServicesPage() {
   }
 
   function renderGmcTable() {
-    if (!tableBody) return;
+    if (!tableBodies.length) return;
     const term = searchInput ? searchInput.value.trim().toLowerCase() : "";
     const currentOnly = yearFilter ? yearFilter.value : "";
-    const rows = Array.from(tableBody.querySelectorAll("tr"));
-    let visibleCount = 0;
+    const selected = select.value;
+    let activeVisibleCount = 0;
 
-    rows.forEach((row) => {
-      const haystack = [
-        row.dataset.name,
-        row.dataset.post,
-        row.dataset.residence,
-        row.dataset.remarks
-      ].join(" ").toLowerCase();
-      const matchesSearch = !term || haystack.includes(term);
-      const matchesYear = !currentOnly || currentOnly === "current";
-      const show = matchesSearch && matchesYear;
-      row.classList.toggle("hidden", !show);
-      if (show) visibleCount += 1;
+    tableBodies.forEach((tableBody) => {
+      const batchSection = tableBody.closest(".service-batch");
+      if (!batchSection) return;
+      const isActiveBatch = batchSection.getAttribute("data-batch") === selected;
+      const rows = Array.from(tableBody.querySelectorAll("tr"));
+      let visibleCount = 0;
+
+      rows.forEach((row) => {
+        const haystack = [row.dataset.name, row.dataset.post, row.dataset.residence, row.dataset.remarks]
+          .join(" ")
+          .toLowerCase();
+        const matchesSearch = !term || haystack.includes(term);
+        const matchesYear = !currentOnly || currentOnly === "current";
+        const show = isActiveBatch && selected.startsWith("gmc-") && matchesSearch && matchesYear;
+        row.classList.toggle("hidden", !show);
+        if (show) visibleCount += 1;
+      });
+
+      if (isActiveBatch) {
+        activeVisibleCount = visibleCount;
+      }
+
+      const totalMembers = batchSection.querySelector(".gmc-total-members");
+      if (totalMembers && selected.startsWith("gmc-") && isActiveBatch) {
+        totalMembers.textContent = String(visibleCount);
+      }
     });
 
-    if (totalMembers) {
-      totalMembers.textContent = String(visibleCount);
+    if (resultSummary) {
+      const label = select.options[select.selectedIndex]?.textContent?.trim() || "selected list";
+      if (!selected) {
+        resultSummary.textContent = "Select a service list to view members.";
+      } else if (selected === "desuup-list") {
+        resultSummary.textContent = "List of NGT De-Suup is currently being updated.";
+      } else if (term && activeVisibleCount === 0) {
+        resultSummary.textContent = "No matching members found. Try another keyword.";
+      } else {
+        resultSummary.textContent = `Showing ${activeVisibleCount} member${activeVisibleCount === 1 ? "" : "s"} in ${label}.`;
+      }
     }
   }
 
   searchInput?.addEventListener("input", renderGmcTable);
   yearFilter?.addEventListener("change", renderGmcTable);
-  select.addEventListener("change", renderSelectedBatch);
+  select.addEventListener("change", () => {
+    renderSelectedBatch();
+    renderGmcTable();
+  });
   renderSelectedBatch();
   renderGmcTable();
 }
