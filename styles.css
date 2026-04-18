@@ -1424,6 +1424,10 @@ tbody tr:hover {
   color: var(--ngt-text);
 }
 
+.admin-login-form label.hidden {
+  display: none;
+}
+
 .admin-login-form input {
   min-height: 56px;
   border-radius: 18px;

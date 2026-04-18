@@ -273,8 +273,8 @@ function getSupabaseClient() {
   const config = getSupabaseConfig();
   supabaseClient = window.supabase.createClient(config.url, config.anonKey, {
     auth: {
-      persistSession: true,
-      autoRefreshToken: true
+      persistSession: false,
+      autoRefreshToken: false
     }
   });
   return supabaseClient;
@@ -2545,6 +2545,13 @@ function initAdminPage() {
 
     emailInput.value = "";
     passwordInput.value = "";
+    const client = getSupabaseClient();
+    if (client) {
+      const { error } = await client.auth.signOut({ scope: "local" });
+      if (error && !isIgnorableAuthSessionError(error)) {
+        setAdminStatus(error.message || "Could not clear the previous admin session.");
+      }
+    }
     await syncAdminView();
   }
 
