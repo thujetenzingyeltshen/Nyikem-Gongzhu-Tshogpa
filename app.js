@@ -5,7 +5,8 @@ const STORAGE_KEYS = {
   members: "ngt_members",
   membersSeedSignature: "ngt_members_seed_signature",
   announcements: "ngt_announcements",
-  documents: "ngt_documents"
+  documents: "ngt_documents",
+  services: "ngt_services"
 };
 
 const SUPPORT_EMAIL = "ngt-secretariat@gmail.com";
@@ -14,7 +15,8 @@ const DEFAULT_SUPABASE_CONFIG = {
   anonKey: "",
   membersTable: "members",
   adminUsersTable: "admin_users",
-  announcementsTable: "announcements"
+  announcementsTable: "announcements",
+  servicesTable: "service_batches"
 };
 let supabaseClient = null;
 
@@ -101,6 +103,11 @@ function getConfiguredDocuments() {
   return Array.isArray(documents) ? documents : [];
 }
 
+function getConfiguredServices() {
+  const services = getSiteContent().services;
+  return Array.isArray(services) ? services : [];
+}
+
 function sanitizeImageUrl(value) {
   const url = String(value ?? "").trim();
   if (!url) return "";
@@ -151,6 +158,59 @@ function sanitizeDocumentHref(value) {
   }
 
   return "";
+}
+
+function sanitizeServiceEntry(entry) {
+  return {
+    name: normalizeText(entry?.name),
+    post: normalizeText(entry?.post),
+    residence: normalizeText(entry?.residence),
+    remarks: normalizeText(entry?.remarks)
+  };
+}
+
+function sanitizeServiceBatch(batch, index = 0) {
+  const slug = normalizeText(batch?.slug) || `service-batch-${index + 1}`;
+  const rawSortOrder = normalizeText(batch?.sortOrder);
+  const sortOrderNumber = Number(rawSortOrder);
+  const entries = Array.isArray(batch?.entries)
+    ? batch.entries
+        .map(sanitizeServiceEntry)
+        .filter((entry) => entry.name || entry.post || entry.residence || entry.remarks)
+    : [];
+
+  return {
+    id: normalizeText(batch?.id) || slug,
+    slug,
+    eyebrow: normalizeText(batch?.eyebrow) || "Service List",
+    title: normalizeText(batch?.title) || slug,
+    summary: normalizeText(batch?.summary),
+    location: normalizeText(batch?.location),
+    batchLabel: normalizeText(batch?.batchLabel),
+    isCurrent: Boolean(batch?.isCurrent),
+    isPlaceholder: Boolean(batch?.isPlaceholder),
+    placeholderStatus: normalizeText(batch?.placeholderStatus),
+    placeholderNote: normalizeText(batch?.placeholderNote),
+    sortOrder: rawSortOrder === "" || Number.isNaN(sortOrderNumber) ? index : sortOrderNumber,
+    entries
+  };
+}
+
+function sortServiceBatches(a, b) {
+  return Number(a.sortOrder || 0) - Number(b.sortOrder || 0) || String(a.title || "").localeCompare(String(b.title || ""));
+}
+
+function getStoredServiceBatches() {
+  const configuredServices = getConfiguredServices()
+    .map((batch, index) => sanitizeServiceBatch(batch, index))
+    .sort(sortServiceBatches);
+  const storedServices = getData(STORAGE_KEYS.services, []);
+
+  if (!Array.isArray(storedServices) || !storedServices.length) {
+    return configuredServices;
+  }
+
+  return storedServices.map((batch, index) => sanitizeServiceBatch(batch, index)).sort(sortServiceBatches);
 }
 
 function getReadonlyDocuments() {
@@ -213,8 +273,8 @@ function getSupabaseClient() {
   const config = getSupabaseConfig();
   supabaseClient = window.supabase.createClient(config.url, config.anonKey, {
     auth: {
-      persistSession: false,
-      autoRefreshToken: false
+      persistSession: true,
+      autoRefreshToken: true
     }
   });
   return supabaseClient;
@@ -231,6 +291,20 @@ function normalizeYear(value) {
 function isIgnorableAuthSessionError(error) {
   const message = normalizeText(error?.message).toLowerCase();
   return message.includes("auth session missing");
+}
+
+function isMissingSupabaseRelation(error, relationName) {
+  const message = normalizeText(error?.message).toLowerCase();
+  const normalizedRelation = normalizeText(relationName).toLowerCase();
+  if (!normalizedRelation) return false;
+
+  return (
+    error?.code === "42P01" ||
+    message.includes(`relation "${normalizedRelation}" does not exist`) ||
+    message.includes(`relation "public.${normalizedRelation}" does not exist`) ||
+    message.includes(`table '${normalizedRelation}'`) ||
+    message.includes(`table 'public.${normalizedRelation}'`)
+  );
 }
 
 function parseYearValue(value) {
@@ -301,8 +375,8 @@ function mergeMembersWithSeed(remoteMembers, seededMembers) {
     }
 
     return {
-      ...remoteMember,
       ...seededMember,
+      ...remoteMember,
       id: remoteMember.id || seededMember.id
     };
   });
@@ -337,6 +411,51 @@ function mapAnnouncementToRemote(item) {
     image_url: sanitizeImageUrl(item.imageUrl),
     body: normalizeText(item.body)
   };
+}
+
+function mapRemoteServiceBatch(row) {
+  return sanitizeServiceBatch({
+    id: normalizeText(row.id) || normalizeText(row.slug),
+    slug: normalizeText(row.slug) || normalizeText(row.id),
+    sortOrder: row.sort_order,
+    eyebrow: normalizeText(row.eyebrow),
+    title: normalizeText(row.title),
+    summary: normalizeText(row.summary),
+    location: normalizeText(row.location),
+    batchLabel: normalizeText(row.batch_label),
+    isCurrent: Boolean(row.is_current),
+    isPlaceholder: Boolean(row.is_placeholder),
+    placeholderStatus: normalizeText(row.placeholder_status),
+    placeholderNote: normalizeText(row.placeholder_note),
+    entries: Array.isArray(row.entries) ? row.entries : []
+  });
+}
+
+function mapServiceBatchToRemote(batch) {
+  const sanitizedBatch = sanitizeServiceBatch(batch);
+  return {
+    id: normalizeText(sanitizedBatch.id) || normalizeText(sanitizedBatch.slug),
+    slug: normalizeText(sanitizedBatch.slug),
+    sort_order: Number(sanitizedBatch.sortOrder || 0),
+    eyebrow: normalizeText(sanitizedBatch.eyebrow),
+    title: normalizeText(sanitizedBatch.title),
+    summary: normalizeText(sanitizedBatch.summary),
+    location: normalizeText(sanitizedBatch.location),
+    batch_label: normalizeText(sanitizedBatch.batchLabel),
+    is_current: Boolean(sanitizedBatch.isCurrent),
+    is_placeholder: Boolean(sanitizedBatch.isPlaceholder),
+    placeholder_status: normalizeText(sanitizedBatch.placeholderStatus),
+    placeholder_note: normalizeText(sanitizedBatch.placeholderNote),
+    entries: sanitizedBatch.entries.map((entry) => sanitizeServiceEntry(entry))
+  };
+}
+
+function getServiceSupabaseErrorMessage(error, action = "load") {
+  if (isMissingSupabaseRelation(error, getSupabaseConfig().servicesTable)) {
+    return "Service lists were saved in this browser only. Run supabase-services-upgrade.sql or supabase-setup.sql to enable shared online service editing.";
+  }
+
+  return error?.message || `Could not ${action} service lists.`;
 }
 
 async function refreshMembersFromSupabase() {
@@ -378,10 +497,26 @@ async function refreshAnnouncementsFromSupabase() {
   }
 
   const remoteAnnouncements = Array.isArray(data) ? data.map(mapRemoteAnnouncement) : [];
-  const existingLocalAnnouncements = getData(STORAGE_KEYS.announcements, []);
-  if (remoteAnnouncements.length || !existingLocalAnnouncements.length) {
-    setData(STORAGE_KEYS.announcements, remoteAnnouncements);
+  setData(STORAGE_KEYS.announcements, remoteAnnouncements);
+  return true;
+}
+
+async function refreshServicesFromSupabase() {
+  const client = getSupabaseClient();
+  if (!client) return false;
+
+  const config = getSupabaseConfig();
+  const { data, error } = await client
+    .from(config.servicesTable)
+    .select("*")
+    .order("sort_order", { ascending: true });
+
+  if (error) {
+    throw error;
   }
+
+  const remoteServices = Array.isArray(data) ? data.map(mapRemoteServiceBatch).sort(sortServiceBatches) : [];
+  setData(STORAGE_KEYS.services, remoteServices);
   return true;
 }
 
@@ -434,6 +569,20 @@ async function saveAnnouncementToSupabase(item, existingItem = null) {
   const { data, error } = await client.from(config.announcementsTable).insert(payload).select("id").single();
   if (error) throw error;
   return data?.id || null;
+}
+
+async function saveServiceBatchesToSupabase(serviceBatches) {
+  const client = getSupabaseClient();
+  if (!client) {
+    throw new Error("Supabase is not configured.");
+  }
+
+  const config = getSupabaseConfig();
+  const payload = serviceBatches.map((batch) => mapServiceBatchToRemote(batch));
+  const { error } = await client.from(config.servicesTable).upsert(payload, {
+    onConflict: "id"
+  });
+  if (error) throw error;
 }
 
 async function deleteAnnouncementFromSupabase(announcementId) {
@@ -501,6 +650,9 @@ async function getCurrentSupabaseUser() {
   } = await client.auth.getUser();
 
   if (error) {
+    if (isIgnorableAuthSessionError(error)) {
+      return null;
+    }
     throw error;
   }
 
@@ -543,6 +695,12 @@ function setupDefaults() {
   const existingAnnouncements = getData(STORAGE_KEYS.announcements, []);
   if (!localStorage.getItem(STORAGE_KEYS.announcements) || (!existingAnnouncements.length && seededAnnouncements.length)) {
     setData(STORAGE_KEYS.announcements, seededAnnouncements);
+  }
+
+  const seededServices = getConfiguredServices().map((batch, index) => sanitizeServiceBatch(batch, index));
+  const existingServices = getData(STORAGE_KEYS.services, []);
+  if (!localStorage.getItem(STORAGE_KEYS.services) || (!existingServices.length && seededServices.length)) {
+    setData(STORAGE_KEYS.services, seededServices);
   }
 }
 
@@ -1492,6 +1650,9 @@ function initAdminPage() {
   const emailInput = document.getElementById("adminLoginEmail");
   const passwordInput = document.getElementById("adminPassword");
   const logoutBtn = document.getElementById("adminLogoutBtn");
+  const loginSubmitBtn = loginForm?.querySelector('button[type="submit"]');
+  const emailField = emailInput?.closest("label");
+  const passwordField = passwordInput?.closest("label");
   const workspace = document.getElementById("adminWorkspace");
   const memberForm = document.getElementById("memberAdminForm");
   const formResetBtn = document.getElementById("memberFormResetBtn");
@@ -1509,9 +1670,11 @@ function initAdminPage() {
   const refreshBtn = document.getElementById("adminRefreshMembersBtn");
   const showMembersBtn = document.getElementById("adminShowMembersBtn");
   const showNewsBtn = document.getElementById("adminShowNewsBtn");
+  const showServicesBtn = document.getElementById("adminShowServicesBtn");
   const adminWorkspaceNote = document.getElementById("adminWorkspaceNote");
   const memberAdminPanel = document.getElementById("memberAdminPanel");
   const newsAdminPanel = document.getElementById("newsAdminPanel");
+  const serviceAdminPanel = document.getElementById("serviceAdminPanel");
   const announcementForm = document.getElementById("announcementAdminForm");
   const announcementIdInput = document.getElementById("announcementId");
   const announcementCurrentImageUrlInput = document.getElementById("announcementCurrentImageUrl");
@@ -1529,15 +1692,47 @@ function initAdminPage() {
   const announcementRefreshBtn = document.getElementById("announcementRefreshBtn");
   const announcementList = document.getElementById("announcementAdminList");
   const announcementDeleteStatus = document.getElementById("announcementDeleteStatus");
+  const serviceForm = document.getElementById("serviceAdminForm");
+  const serviceBatchIdInput = document.getElementById("serviceBatchId");
+  const serviceBatchSlugInput = document.getElementById("serviceBatchSlug");
+  const serviceBatchSortOrderInput = document.getElementById("serviceBatchSortOrder");
+  const serviceBatchEyebrowInput = document.getElementById("serviceBatchEyebrow");
+  const serviceBatchTitleInput = document.getElementById("serviceBatchTitle");
+  const serviceBatchSummaryInput = document.getElementById("serviceBatchSummary");
+  const serviceBatchLocationInput = document.getElementById("serviceBatchLocation");
+  const serviceBatchLabelInput = document.getElementById("serviceBatchLabel");
+  const serviceBatchCurrentInput = document.getElementById("serviceBatchCurrent");
+  const serviceBatchPlaceholderInput = document.getElementById("serviceBatchPlaceholder");
+  const servicePlaceholderFields = document.getElementById("servicePlaceholderFields");
+  const servicePlaceholderStatusInput = document.getElementById("servicePlaceholderStatus");
+  const servicePlaceholderNoteInput = document.getElementById("servicePlaceholderNote");
+  const serviceMemberFields = document.getElementById("serviceMemberFields");
+  const serviceRowsBuilder = document.getElementById("serviceRowsBuilder");
+  const serviceAddRowBtn = document.getElementById("serviceAddRowBtn");
+  const serviceBatchRowsInput = document.getElementById("serviceBatchRows");
+  const serviceFormResetBtn = document.getElementById("serviceFormResetBtn");
+  const serviceStatus = document.getElementById("serviceAdminStatus");
+  const serviceSelect = document.getElementById("serviceAdminSelect");
+  const serviceSummary = document.getElementById("serviceAdminSummary");
   const announcementDraftKey = "ngt_admin_announcement_draft";
   let adminSessionBootstrapComplete = false;
+  let shouldRevealAdminWorkspace = false;
+  const setAdminStatus = (message) => {
+    if (!status) return;
+    const text = String(message || "").trim();
+    status.textContent = text;
+    status.classList.toggle("hidden", !text);
+    status.classList.toggle("is-error", /failed|could not|not authorized|not configured|enter both|invalid|error|denied|unauthorized/i.test(text));
+  };
 
   if (
-    !status ||
     !loginForm ||
     !emailInput ||
     !passwordInput ||
     !logoutBtn ||
+    !loginSubmitBtn ||
+    !emailField ||
+    !passwordField ||
     !workspace ||
     !memberForm ||
     !formResetBtn ||
@@ -1555,9 +1750,11 @@ function initAdminPage() {
     !refreshBtn ||
     !showMembersBtn ||
     !showNewsBtn ||
+    !showServicesBtn ||
     !adminWorkspaceNote ||
     !memberAdminPanel ||
     !newsAdminPanel ||
+    !serviceAdminPanel ||
     !announcementForm ||
     !announcementIdInput ||
     !announcementCurrentImageUrlInput ||
@@ -1574,7 +1771,29 @@ function initAdminPage() {
     !announcementSortSelect ||
     !announcementRefreshBtn ||
     !announcementList ||
-    !announcementDeleteStatus
+    !announcementDeleteStatus ||
+    !serviceForm ||
+    !serviceBatchIdInput ||
+    !serviceBatchSlugInput ||
+    !serviceBatchSortOrderInput ||
+    !serviceBatchEyebrowInput ||
+    !serviceBatchTitleInput ||
+    !serviceBatchSummaryInput ||
+    !serviceBatchLocationInput ||
+    !serviceBatchLabelInput ||
+    !serviceBatchCurrentInput ||
+    !serviceBatchPlaceholderInput ||
+    !servicePlaceholderFields ||
+    !servicePlaceholderStatusInput ||
+    !servicePlaceholderNoteInput ||
+    !serviceMemberFields ||
+    !serviceRowsBuilder ||
+    !serviceAddRowBtn ||
+    !serviceBatchRowsInput ||
+    !serviceFormResetBtn ||
+    !serviceStatus ||
+    !serviceSelect ||
+    !serviceSummary
   ) {
     return;
   }
@@ -1583,6 +1802,14 @@ function initAdminPage() {
     announcementDeleteStatus.textContent = message;
     announcementDeleteStatus.classList.toggle("hidden", !message);
     announcementDeleteStatus.classList.toggle("status-note-error", Boolean(message && isError));
+  }
+
+  function setAdminLoginState(isSignedIn) {
+    emailField.classList.toggle("hidden", isSignedIn);
+    passwordField.classList.toggle("hidden", isSignedIn);
+    loginSubmitBtn.classList.toggle("hidden", isSignedIn);
+    logoutBtn.classList.toggle("hidden", !isSignedIn);
+    loginForm.classList.toggle("is-signed-in", isSignedIn);
   }
 
   function readAnnouncementDraft() {
@@ -1666,22 +1893,201 @@ function initAdminPage() {
 
   const getMembers = () => getData(STORAGE_KEYS.members, []);
   const getAnnouncements = () => getData(STORAGE_KEYS.announcements, []);
+  const getServices = () => getStoredServiceBatches();
+
+  function serializeServiceRows(entries) {
+    return entries
+      .map((entry) => [entry.name, entry.post, entry.residence, entry.remarks].map((value) => normalizeText(value)).join(" | "))
+      .join("\n");
+  }
+
+  function parseServiceRows(value) {
+    return String(value || "")
+      .split(/\r?\n/)
+      .map((line) => line.trim())
+      .filter(Boolean)
+      .map((line) => {
+        const parts = line.split("|").map((part) => part.trim());
+        return sanitizeServiceEntry({
+          name: parts[0] || "",
+          post: parts[1] || "",
+          residence: parts[2] || "",
+          remarks: parts.slice(3).join(" | ")
+        });
+      })
+      .filter((entry) => entry.name || entry.post || entry.residence || entry.remarks);
+  }
+
+  function getBlankServiceEntry() {
+    return {
+      name: "",
+      post: "",
+      residence: "",
+      remarks: ""
+    };
+  }
+
+  function readServiceRowsFromEditor() {
+    return Array.from(serviceRowsBuilder.querySelectorAll(".service-member-row"))
+      .map((row) =>
+        sanitizeServiceEntry({
+          name: row.querySelector('[data-field="name"]')?.value || "",
+          post: row.querySelector('[data-field="post"]')?.value || "",
+          residence: row.querySelector('[data-field="residence"]')?.value || "",
+          remarks: row.querySelector('[data-field="remarks"]')?.value || ""
+        })
+      )
+      .filter((entry) => entry.name || entry.post || entry.residence || entry.remarks);
+  }
+
+  function syncServiceRowsInput() {
+    serviceBatchRowsInput.value = serializeServiceRows(readServiceRowsFromEditor());
+  }
+
+  function renderServiceRowsEditor(entries = []) {
+    const safeEntries = entries.length ? entries.map((entry) => sanitizeServiceEntry(entry)) : [];
+
+    if (!safeEntries.length) {
+      serviceRowsBuilder.innerHTML = `
+        <div class="service-rows-empty">
+          <p>No service members added yet.</p>
+          <p class="muted">Use "Add Member" to start building this list.</p>
+        </div>
+      `;
+      syncServiceRowsInput();
+      return;
+    }
+
+    serviceRowsBuilder.innerHTML = safeEntries
+      .map(
+        (entry, index) => `
+          <article class="service-member-row" data-index="${index}">
+            <div class="service-member-row-head">
+              <strong>Member ${index + 1}</strong>
+              <button class="btn btn-outline service-member-remove" data-action="remove-service-row" type="button">Remove</button>
+            </div>
+            <div class="service-member-grid">
+              <label>
+                Name
+                <input type="text" data-field="name" value="${escapeHTML(entry.name)}" placeholder="Member name" />
+              </label>
+              <label>
+                Post
+                <input type="text" data-field="post" value="${escapeHTML(entry.post)}" placeholder="Post or role" />
+              </label>
+              <label>
+                Residence
+                <input type="text" data-field="residence" value="${escapeHTML(entry.residence)}" placeholder="Residence" />
+              </label>
+              <label>
+                Remarks
+                <input type="text" data-field="remarks" value="${escapeHTML(entry.remarks)}" placeholder="Optional remarks" />
+              </label>
+            </div>
+          </article>
+        `
+      )
+      .join("");
+
+    syncServiceRowsInput();
+  }
+
+  function updateServiceFormMode() {
+    const isPlaceholder = serviceBatchPlaceholderInput.checked;
+    servicePlaceholderFields.classList.toggle("hidden", !isPlaceholder);
+    serviceMemberFields.classList.toggle("hidden", isPlaceholder);
+    serviceBatchCurrentInput.disabled = isPlaceholder;
+
+    if (!isPlaceholder && !serviceRowsBuilder.querySelector(".service-member-row")) {
+      renderServiceRowsEditor(parseServiceRows(serviceBatchRowsInput.value));
+    }
+  }
+
+  function renderServiceSelectionSummary(batch = null) {
+    if (!batch) {
+      serviceSummary.innerHTML = "<p class='muted'>No service lists are available yet.</p>";
+      return;
+    }
+
+    serviceSummary.innerHTML = `
+      <article class="service-selection-card">
+        <div class="service-selection-meta">
+          <span class="badge">${batch.isPlaceholder ? "Status" : "Services"}</span>
+          <p class="muted">${batch.isCurrent ? "Current batch" : "Saved list"}</p>
+        </div>
+        <h4>${escapeHTML(batch.title)}</h4>
+        <p>${escapeHTML(batch.summary || batch.placeholderNote || "No extra summary added yet.")}</p>
+        <p class="muted">${escapeHTML(batch.entries.length)} member${batch.entries.length === 1 ? "" : "s"} | ${escapeHTML(batch.slug)}</p>
+      </article>
+    `;
+  }
+
+  function fillServiceForm(batch = null) {
+    const services = getServices();
+    const selectedBatch = batch || services[0] || null;
+
+    serviceBatchIdInput.value = selectedBatch?.id || "";
+    serviceBatchSlugInput.value = selectedBatch?.slug || "";
+    serviceBatchSortOrderInput.value = String(selectedBatch?.sortOrder ?? "");
+    serviceBatchEyebrowInput.value = selectedBatch?.eyebrow || "";
+    serviceBatchTitleInput.value = selectedBatch?.title || "";
+    serviceBatchSummaryInput.value = selectedBatch?.summary || "";
+    serviceBatchLocationInput.value = selectedBatch?.location || "";
+    serviceBatchLabelInput.value = selectedBatch?.batchLabel || "";
+    serviceBatchCurrentInput.checked = Boolean(selectedBatch?.isCurrent);
+    serviceBatchPlaceholderInput.checked = Boolean(selectedBatch?.isPlaceholder);
+    servicePlaceholderStatusInput.value = selectedBatch?.placeholderStatus || "";
+    servicePlaceholderNoteInput.value = selectedBatch?.placeholderNote || "";
+    serviceBatchRowsInput.value = selectedBatch ? serializeServiceRows(selectedBatch.entries) : "";
+    renderServiceRowsEditor(selectedBatch?.entries || []);
+    updateServiceFormMode();
+    renderServiceAdminList(selectedBatch?.id || "");
+    serviceStatus.textContent = selectedBatch
+      ? `Editing service list: ${selectedBatch.title}`
+      : "Select a service list to begin editing.";
+  }
+
+  function renderServiceAdminList(selectedId = "") {
+    const services = getServices();
+    if (!services.length) {
+      serviceSelect.innerHTML = `<option value="">No service lists available</option>`;
+      renderServiceSelectionSummary(null);
+      return;
+    }
+
+    const selectedBatch = services.find((batch) => batch.id === selectedId) || services[0];
+    serviceSelect.innerHTML = services
+      .map(
+        (batch) =>
+          `<option value="${escapeHTML(batch.id)}">${escapeHTML(batch.title)}${batch.isCurrent ? " (Current)" : ""}</option>`
+      )
+      .join("");
+    serviceSelect.value = selectedBatch.id;
+    renderServiceSelectionSummary(selectedBatch);
+  }
 
   function setAdminSection(section) {
     const showMembers = section === "members";
     const showNews = section === "news";
+    const showServices = section === "services";
     memberAdminPanel.classList.toggle("hidden", !showMembers);
     newsAdminPanel.classList.toggle("hidden", !showNews);
+    serviceAdminPanel.classList.toggle("hidden", !showServices);
     showMembersBtn.classList.toggle("btn-primary", showMembers);
     showMembersBtn.classList.toggle("btn-outline", !showMembers);
     showMembersBtn.classList.toggle("is-active", showMembers);
     showNewsBtn.classList.toggle("btn-primary", showNews);
     showNewsBtn.classList.toggle("btn-outline", !showNews);
     showNewsBtn.classList.toggle("is-active", showNews);
+    showServicesBtn.classList.toggle("btn-primary", showServices);
+    showServicesBtn.classList.toggle("btn-outline", !showServices);
+    showServicesBtn.classList.toggle("is-active", showServices);
     adminWorkspaceNote.textContent = showMembers
       ? "You are managing member records."
       : showNews
         ? "You are managing public news and announcements."
+        : showServices
+          ? "You are managing public service lists."
         : "Choose which section you want to manage.";
   }
 
@@ -1848,8 +2254,9 @@ function initAdminPage() {
   }
 
   function resetAdminWorkspace(message) {
+    shouldRevealAdminWorkspace = false;
     workspace.classList.add("hidden");
-    logoutBtn.classList.add("hidden");
+    setAdminLoginState(false);
     memberForm.reset();
     memberIdInput.value = "";
     serialIdInput.value = "";
@@ -1872,13 +2279,23 @@ function initAdminPage() {
     announcementSortSelect.value = "date-desc";
     announcementStatus.textContent = message;
     setAnnouncementDeleteStatus("");
+    serviceForm.reset();
+    serviceBatchIdInput.value = "";
+    serviceBatchSlugInput.value = "";
+    serviceBatchRowsInput.value = "";
+    renderServiceRowsEditor([]);
+    updateServiceFormMode();
+    serviceSelect.innerHTML = `<option value="">No service lists available</option>`;
+    serviceSummary.innerHTML = "";
+    serviceStatus.textContent = message;
     setAdminSection("none");
   }
 
   async function syncAdminView() {
     if (!isSupabaseConfigured()) {
-      status.textContent =
-        "Supabase is not configured yet. Add your project URL and anon key in supabase-config.js first.";
+      setAdminStatus(
+        "Supabase is not configured yet. Add your project URL and anon key in supabase-config.js first."
+      );
       resetAdminWorkspace("Supabase is not configured.");
       return;
     }
@@ -1887,48 +2304,55 @@ function initAdminPage() {
     try {
       user = await getCurrentSupabaseUser();
     } catch (error) {
-      status.textContent = error.message || "Could not check the current admin session.";
+      if (isIgnorableAuthSessionError(error)) {
+        setAdminStatus("");
+        resetAdminWorkspace("Admin is not signed in.");
+        return;
+      }
+      setAdminStatus(error.message || "Could not check the current admin session.");
       resetAdminWorkspace("Could not verify admin session.");
       return;
     }
 
     if (!user) {
-      status.textContent = "Sign in with your admin email and password each time you open this page to edit member records.";
+      setAdminLoginState(false);
+      setAdminStatus("");
       resetAdminWorkspace("Admin is not signed in.");
       return;
     }
 
+    setAdminLoginState(true);
     let isAdmin = false;
     try {
       isAdmin = await isSupabaseAdminUser(user.id);
     } catch (error) {
-      status.textContent = error.message || "Could not verify admin permissions.";
+      setAdminStatus(error.message || "Could not verify admin permissions.");
       resetAdminWorkspace("Could not verify admin permissions.");
-      logoutBtn.classList.remove("hidden");
+      setAdminLoginState(true);
       return;
     }
 
     if (!isAdmin) {
-      status.textContent = `${user.email || "This account"} is signed in, but it does not have admin access.`;
+      setAdminStatus(`${user.email || "This account"} is signed in, but is not authorized yet. Add this user to admin_users in Supabase.`);
       resetAdminWorkspace("This account is not authorized to edit members.");
-      logoutBtn.classList.remove("hidden");
+      setAdminLoginState(true);
       return;
     }
 
     try {
       await refreshMembersFromSupabase();
     } catch (error) {
-      status.textContent = error.message || "Could not load member records from Supabase.";
+      setAdminStatus(error.message || "Could not load member records from Supabase.");
       resetAdminWorkspace("Could not load member records.");
-      logoutBtn.classList.remove("hidden");
+      setAdminLoginState(true);
       return;
     }
 
     workspace.classList.remove("hidden");
-    logoutBtn.classList.remove("hidden");
+    setAdminLoginState(true);
     emailInput.value = user.email || "";
     passwordInput.value = "";
-    status.textContent = `Signed in as ${user.email || "admin user"}. Online member editing is active.`;
+    setAdminStatus(`Signed in as ${user.email || "admin user"}.`);
     renderAdminSummary();
     populateAdminJoinedFilter();
     renderAdminTable();
@@ -1938,19 +2362,36 @@ function initAdminPage() {
     } catch {
       // Keep existing local/static announcements if remote refresh is not available yet.
     }
+    try {
+      await refreshServicesFromSupabase();
+    } catch {
+      // Keep existing local/static service lists if remote refresh is not available yet.
+    }
     renderAnnouncementAdminList();
+    renderServiceAdminList();
+    fillServiceForm();
     if (restoreAnnouncementDraft()) {
       setAdminSection("news");
     } else {
       fillAnnouncementForm();
-      setAdminSection("none");
+      setAdminSection("members");
+    }
+
+    if (shouldRevealAdminWorkspace) {
+      shouldRevealAdminWorkspace = false;
+      window.setTimeout(() => {
+        workspace.scrollIntoView({
+          behavior: "smooth",
+          block: "start"
+        });
+      }, 0);
     }
   }
 
   loginForm.addEventListener("submit", async (event) => {
     event.preventDefault();
     if (!isSupabaseConfigured()) {
-      status.textContent = "Supabase is not configured yet.";
+      setAdminStatus("Supabase is not configured yet.");
       return;
     }
 
@@ -1959,11 +2400,11 @@ function initAdminPage() {
     const password = passwordInput.value;
 
     if (!email || !password) {
-      status.textContent = "Enter both email and password.";
+      setAdminStatus("Enter both email and password.");
       return;
     }
 
-    status.textContent = "Signing in...";
+    setAdminStatus("Signing in...");
 
     const { error } = await client.auth.signInWithPassword({
       email,
@@ -1971,10 +2412,11 @@ function initAdminPage() {
     });
 
     if (error) {
-      status.textContent = error.message || "Sign in failed.";
+      setAdminStatus(error.message || "Sign in failed.");
       return;
     }
 
+    shouldRevealAdminWorkspace = true;
     await syncAdminView();
   });
 
@@ -1984,7 +2426,7 @@ function initAdminPage() {
 
     const { error } = await client.auth.signOut();
     if (error && !isIgnorableAuthSessionError(error)) {
-      status.textContent = error.message || "Sign out failed.";
+      setAdminStatus(error.message || "Sign out failed.");
       return;
     }
 
@@ -2101,20 +2543,6 @@ function initAdminPage() {
     if (adminSessionBootstrapComplete) return;
     adminSessionBootstrapComplete = true;
 
-    if (!client) {
-      await syncAdminView();
-      return;
-    }
-
-    try {
-      const { error } = await client.auth.signOut();
-      if (error && !isIgnorableAuthSessionError(error)) {
-        throw error;
-      }
-    } catch {
-      // Ignore stale session cleanup errors and continue with a fresh sign-in prompt.
-    }
-
     emailInput.value = "";
     passwordInput.value = "";
     await syncAdminView();
@@ -2139,8 +2567,44 @@ function initAdminPage() {
 
   showMembersBtn.addEventListener("click", () => setAdminSection("members"));
   showNewsBtn.addEventListener("click", () => setAdminSection("news"));
+  showServicesBtn.addEventListener("click", () => setAdminSection("services"));
 
   announcementFormResetBtn.addEventListener("click", () => fillAnnouncementForm());
+  serviceFormResetBtn.addEventListener("click", () => {
+    const selectedBatch = getServices().find((batch) => batch.id === serviceSelect.value) || null;
+    fillServiceForm(selectedBatch);
+  });
+  serviceBatchPlaceholderInput.addEventListener("change", () => {
+    updateServiceFormMode();
+    syncServiceRowsInput();
+  });
+
+  serviceAddRowBtn.addEventListener("click", () => {
+    const entries = readServiceRowsFromEditor();
+    entries.push(getBlankServiceEntry());
+    renderServiceRowsEditor(entries);
+  });
+
+  serviceRowsBuilder.addEventListener("input", () => {
+    syncServiceRowsInput();
+  });
+
+  serviceRowsBuilder.addEventListener("click", (event) => {
+    const rawTarget = event.target;
+    if (!(rawTarget instanceof HTMLElement)) return;
+    const target = rawTarget.closest("[data-action]");
+    if (!(target instanceof HTMLElement)) return;
+    if (target.dataset.action !== "remove-service-row") return;
+
+    const row = target.closest(".service-member-row");
+    if (!(row instanceof HTMLElement)) return;
+
+    const index = Number(row.dataset.index);
+    const entries = readServiceRowsFromEditor();
+    if (Number.isNaN(index)) return;
+    entries.splice(index, 1);
+    renderServiceRowsEditor(entries);
+  });
 
   [announcementTitleInput, announcementDateInput, announcementCategoryInput, announcementBodyInput].forEach((field) => {
     field.addEventListener("input", saveAnnouncementDraft);
@@ -2262,6 +2726,86 @@ function initAdminPage() {
     announcementImagePreviewWrap.classList.remove("hidden");
   });
 
+  serviceForm.addEventListener("submit", async (event) => {
+    event.preventDefault();
+    if (!isSupabaseConfigured()) {
+      serviceStatus.textContent = "Supabase is not configured.";
+      return;
+    }
+
+    const services = getServices();
+    const editingId = serviceBatchIdInput.value;
+    const existingBatch = services.find((batch) => batch.id === editingId) || null;
+    if (!existingBatch) {
+      serviceStatus.textContent = "Select a saved service list before updating it.";
+      return;
+    }
+
+    const isPlaceholder = serviceBatchPlaceholderInput.checked;
+    const payload = sanitizeServiceBatch(
+      {
+        id: existingBatch.id,
+        slug: existingBatch.slug,
+        sortOrder: serviceBatchSortOrderInput.value,
+        eyebrow: serviceBatchEyebrowInput.value,
+        title: serviceBatchTitleInput.value,
+        summary: serviceBatchSummaryInput.value,
+        location: serviceBatchLocationInput.value,
+        batchLabel: serviceBatchLabelInput.value,
+        isCurrent: !isPlaceholder && serviceBatchCurrentInput.checked,
+        isPlaceholder,
+        placeholderStatus: servicePlaceholderStatusInput.value,
+        placeholderNote: servicePlaceholderNoteInput.value,
+        entries: isPlaceholder ? [] : readServiceRowsFromEditor()
+      },
+      existingBatch.sortOrder
+    );
+
+    if (!payload.title) {
+      serviceStatus.textContent = "Service title is required.";
+      return;
+    }
+
+    const nextServices = services
+      .map((batch) => {
+        if (batch.id === payload.id) return payload;
+        return payload.isCurrent ? { ...batch, isCurrent: false } : batch;
+      })
+      .sort(sortServiceBatches);
+
+    try {
+      serviceStatus.textContent = `Saving ${payload.title}...`;
+      await saveServiceBatchesToSupabase(nextServices);
+      await refreshServicesFromSupabase();
+      renderServiceAdminList();
+      fillServiceForm(getServices().find((batch) => batch.id === payload.id) || payload);
+      setAdminSection("services");
+      serviceStatus.textContent = `${payload.title} was updated successfully.`;
+    } catch (error) {
+      if (isMissingSupabaseRelation(error, getSupabaseConfig().servicesTable)) {
+        setData(STORAGE_KEYS.services, nextServices);
+        renderServiceAdminList(payload.id);
+        fillServiceForm(nextServices.find((batch) => batch.id === payload.id) || payload);
+        setAdminSection("services");
+        serviceStatus.textContent = getServiceSupabaseErrorMessage(error, "save");
+        return;
+      }
+
+      await refreshServicesFromSupabase().catch(() => {});
+      renderServiceAdminList();
+      fillServiceForm(getServices().find((batch) => batch.id === existingBatch.id) || existingBatch);
+      serviceStatus.textContent = getServiceSupabaseErrorMessage(error, "save");
+    }
+  });
+
+  serviceSelect.addEventListener("change", () => {
+    const selectedBatch = getServices().find((batch) => batch.id === serviceSelect.value);
+    if (!selectedBatch) return;
+
+    setAdminSection("services");
+    fillServiceForm(selectedBatch);
+  });
+
   bootstrapAdminSession();
 }
 
@@ -2338,13 +2882,113 @@ function initServicesPage() {
   const yearFilter = document.getElementById("serviceYearFilter");
   const searchInput = document.getElementById("serviceSearch");
   const resultSummary = document.getElementById("serviceResultSummary");
-  const sections = document.querySelectorAll(".service-batch");
-  const tableBodies = document.querySelectorAll(".gmc-duty-table-body");
-  if (!select || !sections.length) return;
+  const batchContainer = document.getElementById("serviceBatchContainer");
+  if (!select || !batchContainer) return;
+
+  let batches = getStoredServiceBatches();
+
+  function renderServiceBatch(batch) {
+    if (batch.isPlaceholder) {
+      return `
+        <article class="card elevated-card top-gap service-batch hidden" data-batch="${escapeHTML(batch.slug)}">
+          <p class="eyebrow">${escapeHTML(batch.eyebrow)}</p>
+          <h2 class="section-title">${escapeHTML(batch.title)}</h2>
+          <div class="service-list-card">
+            <p><strong>Status:</strong> ${escapeHTML(batch.placeholderStatus || "List to be updated")}</p>
+            <p class="muted">${escapeHTML(batch.placeholderNote || "Add official names or deployment details here when available.")}</p>
+          </div>
+        </article>
+      `;
+    }
+
+    const entries = batch.entries.length
+      ? batch.entries
+          .map(
+            (entry, index) => `
+              <tr
+                data-name="${escapeHTML(entry.name)}"
+                data-post="${escapeHTML(entry.post)}"
+                data-residence="${escapeHTML(entry.residence)}"
+                data-remarks="${escapeHTML(entry.remarks)}">
+                <td>${index + 1}</td>
+                <td>${escapeHTML(entry.name || "--")}</td>
+                <td>${escapeHTML(entry.post || "--")}</td>
+                <td>${escapeHTML(entry.residence || "--")}</td>
+                <td>${escapeHTML(entry.remarks || "--")}</td>
+              </tr>
+            `
+          )
+          .join("")
+      : "<tr><td colspan='5'>No service members have been added yet.</td></tr>";
+
+    return `
+      <article class="card elevated-card top-gap service-batch hidden" data-batch="${escapeHTML(batch.slug)}"${batch.isCurrent ? ' data-current="true"' : ""}>
+        <p class="eyebrow">${escapeHTML(batch.eyebrow)}</p>
+        <h2 class="section-title">${escapeHTML(batch.title)}</h2>
+        <p class="muted">${escapeHTML(batch.summary)}</p>
+        <div class="service-summary-grid top-gap">
+          <article class="service-summary-card">
+            <span class="service-summary-label">Total Members</span>
+            <strong class="gmc-total-members">${batch.entries.length}</strong>
+            <p>Attendees listed in this batch.</p>
+          </article>
+          <article class="service-summary-card">
+            <span class="service-summary-label">Location</span>
+            <strong>${escapeHTML(batch.location || "--")}</strong>
+            <p>Primary residence and service base.</p>
+          </article>
+          <article class="service-summary-card">
+            <span class="service-summary-label">Batch</span>
+            <strong>${escapeHTML(batch.batchLabel || "--")}</strong>
+            <p>Current visible volunteer batch.</p>
+          </article>
+        </div>
+        <div class="table-wrap top-gap">
+          <table class="service-table">
+            <thead>
+              <tr>
+                <th>Sl. No.</th>
+                <th>Name</th>
+                <th>Post Held on Gongzhu</th>
+                <th>Residence</th>
+                <th>Remarks</th>
+              </tr>
+            </thead>
+            <tbody class="gmc-duty-table-body">
+              ${entries}
+            </tbody>
+          </table>
+        </div>
+      </article>
+    `;
+  }
+
+  function renderBatchOptions(selectedValue = "") {
+    select.innerHTML = `
+      <option value="">Select a service list</option>
+      ${batches
+        .map((batch) => `<option value="${escapeHTML(batch.slug)}">${escapeHTML(batch.title)}</option>`)
+        .join("")}
+    `;
+
+    select.value = batches.some((batch) => batch.slug === selectedValue) ? selectedValue : "";
+  }
+
+  function renderBatchSections() {
+    batchContainer.innerHTML = batches.map((batch) => renderServiceBatch(batch)).join("");
+  }
+
+  function getSections() {
+    return Array.from(batchContainer.querySelectorAll(".service-batch"));
+  }
+
+  function getTableBodies() {
+    return Array.from(batchContainer.querySelectorAll(".gmc-duty-table-body"));
+  }
 
   function renderSelectedBatch() {
     const selected = select.value;
-    sections.forEach((section) => {
+    getSections().forEach((section) => {
       const isMatch = section.getAttribute("data-batch") === selected;
       section.classList.toggle("hidden", !isMatch);
       section.classList.toggle("is-active", isMatch);
@@ -2352,25 +2996,32 @@ function initServicesPage() {
   }
 
   function renderGmcTable() {
+    const tableBodies = getTableBodies();
     if (!tableBodies.length) return;
     const term = searchInput ? searchInput.value.trim().toLowerCase() : "";
     const currentOnly = yearFilter ? yearFilter.value : "";
     const selected = select.value;
     let activeVisibleCount = 0;
+    let activeBatchIsCurrent = false;
 
     tableBodies.forEach((tableBody) => {
       const batchSection = tableBody.closest(".service-batch");
       if (!batchSection) return;
       const isActiveBatch = batchSection.getAttribute("data-batch") === selected;
+      const isCurrentBatch = batchSection.getAttribute("data-current") === "true";
       const rows = Array.from(tableBody.querySelectorAll("tr"));
       let visibleCount = 0;
+
+      if (isActiveBatch) {
+        activeBatchIsCurrent = isCurrentBatch;
+      }
 
       rows.forEach((row) => {
         const haystack = [row.dataset.name, row.dataset.post, row.dataset.residence, row.dataset.remarks]
           .join(" ")
           .toLowerCase();
         const matchesSearch = !term || haystack.includes(term);
-        const matchesYear = !currentOnly || currentOnly === "current";
+        const matchesYear = currentOnly !== "current" || isCurrentBatch;
         const show = isActiveBatch && selected.startsWith("gmc-") && matchesSearch && matchesYear;
         row.classList.toggle("hidden", !show);
         if (show) visibleCount += 1;
@@ -2392,6 +3043,8 @@ function initServicesPage() {
         resultSummary.textContent = "Select a service list to view members.";
       } else if (selected === "desuup-list") {
         resultSummary.textContent = "List of NGT De-Suup is currently being updated.";
+      } else if (currentOnly === "current" && !activeBatchIsCurrent) {
+        resultSummary.textContent = `${label} is not marked as the current batch. Select the current GMC batch or switch back to All Records.`;
       } else if (term && activeVisibleCount === 0) {
         resultSummary.textContent = "No matching members found. Try another keyword.";
       } else {
@@ -2400,6 +3053,8 @@ function initServicesPage() {
     }
   }
 
+  renderBatchOptions(select.value);
+  renderBatchSections();
   searchInput?.addEventListener("input", renderGmcTable);
   yearFilter?.addEventListener("change", renderGmcTable);
   select.addEventListener("change", () => {
@@ -2425,6 +3080,13 @@ async function init() {
       await refreshAnnouncementsFromSupabase();
     } catch {
       // Keep local/static announcements as a fallback if remote loading is unavailable.
+    }
+    if (page === "services" || page === "admin") {
+      try {
+        await refreshServicesFromSupabase();
+      } catch {
+        // Keep local/static service lists as a fallback if remote loading is unavailable.
+      }
     }
   }
   setupNavigation();

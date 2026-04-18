@@ -4,5 +4,6 @@ window.NGT_SUPABASE_CONFIG = {
   membersTable: "members",
   adminUsersTable: "admin_users",
   announcementsTable: "announcements",
+  servicesTable: "service_batches",
   announcementImagesBucket: "announcement-images"
 };

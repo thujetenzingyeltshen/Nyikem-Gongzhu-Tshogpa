@@ -47,9 +47,10 @@ values ('YOUR-USER-UUID-HERE', 'admin@example.com');
 
 - Public visitors can view members from the online database
 - Admin users can sign in at `admin.html`
-- Only users listed in `admin_users` can add, edit, or delete members
+- Only users listed in `admin_users` can add, edit, or delete members, news, and service lists
 - For the new member strength controls (`service_status` and `life_status`), run `supabase-setup.sql` again in SQL Editor to add missing columns on older projects
 - For editable news tags/categories, run `supabase-setup.sql` again in SQL Editor to add the `category` column on older projects
+- For the shared Services page editor, run `supabase-setup.sql` again or run [`supabase-services-upgrade.sql`](./supabase-services-upgrade.sql) on older projects to create `public.service_batches`
 
 ## Features
 
@@ -57,13 +58,13 @@ values ('YOUR-USER-UUID-HERE', 'admin@example.com');
 - Member records with add/edit/delete/search/filter
 - Auto-generated member serial ID (`NGT-001`, `NGT-002`, ...)
 - Secure online admin sign-in with Supabase
-- Shared online member database for all users
+- Shared online member, news, and service-list database for all users
 - PDF upload and listing in Documents page
 - Local browser fallback when Supabase is not configured
 - Responsive Bhutan-theme design
 
 ## Notes
 
-- When Supabase is configured, the member directory syncs from the online database.
+- When Supabase is configured, the member directory, news page, and Services page sync from the online database.
 - Without Supabase config, the site falls back to local browser data for offline use.
 # Nyikem-Gongzhu-Tshogpa

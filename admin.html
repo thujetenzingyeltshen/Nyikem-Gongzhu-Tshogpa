@@ -61,26 +61,30 @@
     <section class="section">
       <div class="container">
         <section class="card form-card admin-auth-card">
-          <h2>Admin Access</h2>
-          <p class="muted">
-            Sign in with a Supabase admin account. Only authenticated users added to the admin access
-            table will be allowed to edit member records.
-          </p>
-          <form id="adminLoginForm" class="form-grid compact admin-login-form">
-            <label class="full" for="adminLoginEmail">
-              Admin Email
-              <input id="adminLoginEmail" name="email" type="email" placeholder="name@example.com" autocomplete="username" />
-            </label>
-            <label class="full" for="adminPassword">
-              Password
-              <input id="adminPassword" name="password" type="password" placeholder="Enter your password" autocomplete="current-password" />
-            </label>
-            <div class="form-actions">
-              <button class="btn btn-primary" type="submit">Sign In</button>
-              <button class="btn btn-outline hidden" id="adminLogoutBtn" type="button">Sign Out</button>
+          <div class="admin-auth-shell">
+            <div class="admin-auth-copy">
+              <p class="eyebrow">Restricted Access</p>
+              <h2>Admin Access</h2>
+              <p class="admin-auth-lead">Sign in with an admin account.</p>
             </div>
-          </form>
-          <p id="adminStatus" class="status-note top-gap" role="status">Sign in with your admin email and password to edit member records.</p>
+            <div class="admin-auth-panel">
+              <form id="adminLoginForm" class="form-grid compact admin-login-form">
+                <label class="full" for="adminLoginEmail">
+                  Admin Email
+                  <input id="adminLoginEmail" name="email" type="email" placeholder="name@example.com" autocomplete="username" />
+                </label>
+                <label class="full" for="adminPassword">
+                  Password
+                  <input id="adminPassword" name="password" type="password" placeholder="Enter your password" autocomplete="current-password" />
+                </label>
+                <div class="form-actions admin-auth-actions">
+                  <button class="btn btn-primary" type="submit">Sign In</button>
+                  <button class="btn btn-outline hidden" id="adminLogoutBtn" type="button">Sign Out</button>
+                </div>
+              </form>
+              <p id="adminStatus" class="admin-auth-status hidden" role="status" aria-live="polite"></p>
+            </div>
+          </div>
         </section>
 
         <section id="adminWorkspace" class="admin-workspace hidden">
@@ -106,6 +110,7 @@
             <div class="admin-switcher">
               <button class="btn btn-primary admin-switch-btn is-active" id="adminShowMembersBtn" type="button">Edit Members</button>
               <button class="btn btn-outline admin-switch-btn" id="adminShowNewsBtn" type="button">Edit News</button>
+              <button class="btn btn-outline admin-switch-btn" id="adminShowServicesBtn" type="button">Edit Services</button>
             </div>
             <p id="adminWorkspaceNote" class="muted">Choose which section you want to manage.</p>
           </section>
@@ -305,6 +310,102 @@
 
             <div id="announcementAdminList" class="announcement-list top-gap"></div>
             <p id="announcementDeleteStatus" class="status-note top-gap hidden" role="status"></p>
+          </section>
+          </section>
+
+          <section id="serviceAdminPanel" class="admin-panel-group hidden">
+          <section class="card service-selection-panel top-gap">
+            <div class="section-head">
+              <div>
+                <p class="eyebrow">Choose List</p>
+                <h3 class="section-title">Select a Service List to Edit</h3>
+                <p class="muted">Pick one published list first, then update only that list in the editor below.</p>
+              </div>
+            </div>
+            <div class="service-selection-shell top-gap">
+              <label class="service-selection-picker" for="serviceAdminSelect">
+                <span class="service-selection-label">Which list do you want to edit?</span>
+                <select id="serviceAdminSelect"></select>
+              </label>
+              <div id="serviceAdminSummary" class="service-selection-summary"></div>
+            </div>
+          </section>
+
+          <section class="card top-gap">
+            <div class="section-head">
+              <div>
+                <p class="eyebrow">Services Editor</p>
+                <h3 class="section-title">Service List Management</h3>
+                <p class="muted">Update GMC duty lists and the De-Suup section shown on the public Services page.</p>
+              </div>
+            </div>
+
+            <form id="serviceAdminForm" class="form-grid">
+              <input id="serviceBatchId" name="serviceBatchId" type="hidden" />
+              <label for="serviceBatchSlug">
+                Service Key
+                <input id="serviceBatchSlug" name="serviceBatchSlug" type="text" readonly />
+              </label>
+              <label for="serviceBatchSortOrder">
+                Sort Order
+                <input id="serviceBatchSortOrder" name="serviceBatchSortOrder" type="number" inputmode="numeric" />
+              </label>
+              <label for="serviceBatchEyebrow">
+                Eyebrow Label
+                <input id="serviceBatchEyebrow" name="serviceBatchEyebrow" type="text" />
+              </label>
+              <label for="serviceBatchTitle">
+                Service Title
+                <input id="serviceBatchTitle" name="serviceBatchTitle" type="text" required />
+              </label>
+              <label class="full" for="serviceBatchSummary">
+                Summary
+                <textarea id="serviceBatchSummary" name="serviceBatchSummary"></textarea>
+              </label>
+              <label for="serviceBatchLocation">
+                Location
+                <input id="serviceBatchLocation" name="serviceBatchLocation" type="text" />
+              </label>
+              <label for="serviceBatchLabel">
+                Batch Label
+                <input id="serviceBatchLabel" name="serviceBatchLabel" type="text" placeholder="3rd GMC, 4th GMC, De-Suup" />
+              </label>
+              <label for="serviceBatchCurrent" class="admin-checkbox">
+                <input id="serviceBatchCurrent" name="serviceBatchCurrent" type="checkbox" />
+                Mark as current batch
+              </label>
+              <label for="serviceBatchPlaceholder" class="admin-checkbox">
+                <input id="serviceBatchPlaceholder" name="serviceBatchPlaceholder" type="checkbox" />
+                Placeholder / status-only list
+              </label>
+              <div id="servicePlaceholderFields" class="service-admin-section full">
+                <label for="servicePlaceholderStatus">
+                  Placeholder Status
+                  <input id="servicePlaceholderStatus" name="servicePlaceholderStatus" type="text" placeholder="List to be updated" />
+                </label>
+                <label class="full" for="servicePlaceholderNote">
+                  Placeholder Note
+                  <textarea id="servicePlaceholderNote" name="servicePlaceholderNote"></textarea>
+                </label>
+              </div>
+              <div id="serviceMemberFields" class="service-admin-section full">
+                <div class="service-admin-editor-head">
+                  <div>
+                    <p class="eyebrow">Service Members</p>
+                    <p class="muted">Add, update, or remove members without typing special symbols.</p>
+                  </div>
+                  <button class="btn btn-outline" id="serviceAddRowBtn" type="button">Add Member</button>
+                </div>
+                <div id="serviceRowsBuilder" class="service-rows-builder"></div>
+                <p class="muted top-gap">Remarks are optional. Use the remove button if you want to delete a person from the list.</p>
+                <textarea id="serviceBatchRows" name="serviceBatchRows" class="service-rows-editor hidden" placeholder="One member per line: Name | Post | Residence | Remarks"></textarea>
+              </div>
+              <div class="form-actions">
+                <button class="btn btn-primary" type="submit">Save Services</button>
+                <button class="btn btn-outline" id="serviceFormResetBtn" type="button">Reload Selected List</button>
+              </div>
+            </form>
+            <p id="serviceAdminStatus" class="status-note top-gap" role="status">Sign in to manage service lists.</p>
           </section>
           </section>
         </section>
