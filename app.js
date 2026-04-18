@@ -2886,7 +2886,6 @@ function initContactPage() {
 
 function initServicesPage() {
   const select = document.getElementById("serviceBatchSelect");
-  const yearFilter = document.getElementById("serviceYearFilter");
   const searchInput = document.getElementById("serviceSearch");
   const resultSummary = document.getElementById("serviceResultSummary");
   const batchContainer = document.getElementById("serviceBatchContainer");
@@ -3006,30 +3005,22 @@ function initServicesPage() {
     const tableBodies = getTableBodies();
     if (!tableBodies.length) return;
     const term = searchInput ? searchInput.value.trim().toLowerCase() : "";
-    const currentOnly = yearFilter ? yearFilter.value : "";
     const selected = select.value;
     let activeVisibleCount = 0;
-    let activeBatchIsCurrent = false;
 
     tableBodies.forEach((tableBody) => {
       const batchSection = tableBody.closest(".service-batch");
       if (!batchSection) return;
       const isActiveBatch = batchSection.getAttribute("data-batch") === selected;
-      const isCurrentBatch = batchSection.getAttribute("data-current") === "true";
       const rows = Array.from(tableBody.querySelectorAll("tr"));
       let visibleCount = 0;
-
-      if (isActiveBatch) {
-        activeBatchIsCurrent = isCurrentBatch;
-      }
 
       rows.forEach((row) => {
         const haystack = [row.dataset.name, row.dataset.post, row.dataset.residence, row.dataset.remarks]
           .join(" ")
           .toLowerCase();
         const matchesSearch = !term || haystack.includes(term);
-        const matchesYear = currentOnly !== "current" || isCurrentBatch;
-        const show = isActiveBatch && selected.startsWith("gmc-") && matchesSearch && matchesYear;
+        const show = isActiveBatch && selected.startsWith("gmc-") && matchesSearch;
         row.classList.toggle("hidden", !show);
         if (show) visibleCount += 1;
       });
@@ -3050,8 +3041,6 @@ function initServicesPage() {
         resultSummary.textContent = "Select a service list to view members.";
       } else if (selected === "desuup-list") {
         resultSummary.textContent = "List of NGT De-Suup is currently being updated.";
-      } else if (currentOnly === "current" && !activeBatchIsCurrent) {
-        resultSummary.textContent = `${label} is not marked as the current batch. Select the current GMC batch or switch back to All Records.`;
       } else if (term && activeVisibleCount === 0) {
         resultSummary.textContent = "No matching members found. Try another keyword.";
       } else {
@@ -3063,7 +3052,6 @@ function initServicesPage() {
   renderBatchOptions(select.value);
   renderBatchSections();
   searchInput?.addEventListener("input", renderGmcTable);
-  yearFilter?.addEventListener("change", renderGmcTable);
   select.addEventListener("change", () => {
     renderSelectedBatch();
     renderGmcTable();
