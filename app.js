@@ -1715,6 +1715,8 @@ function initAdminPage() {
   const serviceSelect = document.getElementById("serviceAdminSelect");
   const serviceSummary = document.getElementById("serviceAdminSummary");
   const announcementDraftKey = "ngt_admin_announcement_draft";
+  const memberDraftKey = "ngt_admin_member_draft";
+  const serviceDraftKey = "ngt_admin_service_draft";
   let adminSessionBootstrapComplete = false;
   let shouldRevealAdminWorkspace = false;
   const setAdminStatus = (message) => {
@@ -1823,6 +1825,28 @@ function initAdminPage() {
     }
   }
 
+  function readMemberDraft() {
+    try {
+      const raw = localStorage.getItem(memberDraftKey);
+      if (!raw) return null;
+      const parsed = JSON.parse(raw);
+      return parsed && typeof parsed === "object" ? parsed : null;
+    } catch {
+      return null;
+    }
+  }
+
+  function readServiceDraft() {
+    try {
+      const raw = localStorage.getItem(serviceDraftKey);
+      if (!raw) return null;
+      const parsed = JSON.parse(raw);
+      return parsed && typeof parsed === "object" ? parsed : null;
+    } catch {
+      return null;
+    }
+  }
+
   function hasAnnouncementDraft(draft = readAnnouncementDraft()) {
     if (!draft) return false;
     return Boolean(
@@ -1835,6 +1859,32 @@ function initAdminPage() {
     );
   }
 
+  function hasMemberDraft(draft = readMemberDraft()) {
+    if (!draft) return false;
+    return Boolean(
+      normalizeText(draft.id) ||
+        normalizeText(draft.serialId) ||
+        Object.keys(formFields).some((key) => normalizeText(draft[key]))
+    );
+  }
+
+  function hasServiceDraft(draft = readServiceDraft()) {
+    if (!draft) return false;
+    return Boolean(
+      normalizeText(draft.id) ||
+        normalizeText(draft.slug) ||
+        normalizeText(draft.title) ||
+        normalizeText(draft.summary) ||
+        normalizeText(draft.location) ||
+        normalizeText(draft.batchLabel) ||
+        normalizeText(draft.placeholderStatus) ||
+        normalizeText(draft.placeholderNote) ||
+        Boolean(draft.isCurrent) ||
+        Boolean(draft.isPlaceholder) ||
+        (Array.isArray(draft.entries) && draft.entries.some((entry) => entry.name || entry.post || entry.residence || entry.remarks))
+    );
+  }
+
   function saveAnnouncementDraft() {
     const draft = {
       id: normalizeText(announcementIdInput.value),
@@ -1842,7 +1892,8 @@ function initAdminPage() {
       title: normalizeText(announcementTitleInput.value),
       date: normalizeText(announcementDateInput.value),
       category: normalizeText(announcementCategoryInput.value),
-      body: normalizeText(announcementBodyInput.value)
+      body: normalizeText(announcementBodyInput.value),
+      updatedAt: Date.now()
     };
 
     if (!hasAnnouncementDraft(draft)) {
@@ -1852,8 +1903,61 @@ function initAdminPage() {
     localStorage.setItem(announcementDraftKey, JSON.stringify(draft));
   }
 
+  function saveMemberDraft() {
+    const draft = {
+      id: normalizeText(memberIdInput.value),
+      serialId: normalizeText(serialIdInput.value),
+      updatedAt: Date.now()
+    };
+
+    Object.keys(formFields).forEach((key) => {
+      draft[key] = normalizeText(formFields[key]?.value);
+    });
+
+    if (!hasMemberDraft(draft)) {
+      localStorage.removeItem(memberDraftKey);
+      return;
+    }
+
+    localStorage.setItem(memberDraftKey, JSON.stringify(draft));
+  }
+
+  function saveServiceDraft() {
+    const draft = {
+      id: normalizeText(serviceBatchIdInput.value),
+      slug: normalizeText(serviceBatchSlugInput.value),
+      sortOrder: normalizeText(serviceBatchSortOrderInput.value),
+      eyebrow: normalizeText(serviceBatchEyebrowInput.value),
+      title: normalizeText(serviceBatchTitleInput.value),
+      summary: normalizeText(serviceBatchSummaryInput.value),
+      location: normalizeText(serviceBatchLocationInput.value),
+      batchLabel: normalizeText(serviceBatchLabelInput.value),
+      isCurrent: Boolean(serviceBatchCurrentInput.checked),
+      isPlaceholder: Boolean(serviceBatchPlaceholderInput.checked),
+      placeholderStatus: normalizeText(servicePlaceholderStatusInput.value),
+      placeholderNote: normalizeText(servicePlaceholderNoteInput.value),
+      entries: readServiceRowsFromEditor(),
+      updatedAt: Date.now()
+    };
+
+    if (!hasServiceDraft(draft)) {
+      localStorage.removeItem(serviceDraftKey);
+      return;
+    }
+
+    localStorage.setItem(serviceDraftKey, JSON.stringify(draft));
+  }
+
   function clearAnnouncementDraft() {
     localStorage.removeItem(announcementDraftKey);
+  }
+
+  function clearMemberDraft() {
+    localStorage.removeItem(memberDraftKey);
+  }
+
+  function clearServiceDraft() {
+    localStorage.removeItem(serviceDraftKey);
   }
 
   function restoreAnnouncementDraft() {
@@ -1871,6 +1975,64 @@ function initAdminPage() {
     announcementImagePreviewWrap.classList.toggle("hidden", !draft.imageUrl);
     announcementStatus.textContent = "Draft restored. Continue editing and publish when ready.";
     return true;
+  }
+
+  function restoreMemberDraft() {
+    const draft = readMemberDraft();
+    if (!hasMemberDraft(draft)) return false;
+
+    memberIdInput.value = draft.id || "";
+    serialIdInput.value = draft.serialId || generateSerialId(getMembers());
+    Object.keys(formFields).forEach((key) => {
+      if (formFields[key]) formFields[key].value = draft[key] || "";
+    });
+    memberStatus.textContent = "Draft restored. Continue editing and save when ready.";
+    return true;
+  }
+
+  function restoreServiceDraft() {
+    const draft = readServiceDraft();
+    if (!hasServiceDraft(draft)) return false;
+
+    serviceBatchIdInput.value = draft.id || "";
+    serviceBatchSlugInput.value = draft.slug || "";
+    serviceBatchSortOrderInput.value = String(draft.sortOrder ?? "");
+    serviceBatchEyebrowInput.value = draft.eyebrow || "";
+    serviceBatchTitleInput.value = draft.title || "";
+    serviceBatchSummaryInput.value = draft.summary || "";
+    serviceBatchLocationInput.value = draft.location || "";
+    serviceBatchLabelInput.value = draft.batchLabel || "";
+    serviceBatchCurrentInput.checked = Boolean(draft.isCurrent);
+    serviceBatchPlaceholderInput.checked = Boolean(draft.isPlaceholder);
+    servicePlaceholderStatusInput.value = draft.placeholderStatus || "";
+    servicePlaceholderNoteInput.value = draft.placeholderNote || "";
+    serviceBatchRowsInput.value = serializeServiceRows(Array.isArray(draft.entries) ? draft.entries : []);
+    renderServiceRowsEditor(Array.isArray(draft.entries) ? draft.entries : []);
+    updateServiceFormMode();
+    renderServiceAdminList(draft.id || "");
+    serviceStatus.textContent = "Draft restored. Continue editing and save when ready.";
+    return true;
+  }
+
+  function getLatestAdminDraftSection() {
+    const candidates = [];
+    const memberDraft = readMemberDraft();
+    const announcementDraft = readAnnouncementDraft();
+    const serviceDraft = readServiceDraft();
+
+    if (hasMemberDraft(memberDraft)) {
+      candidates.push({ section: "members", updatedAt: Number(memberDraft.updatedAt || 0) });
+    }
+    if (hasAnnouncementDraft(announcementDraft)) {
+      candidates.push({ section: "news", updatedAt: Number(announcementDraft.updatedAt || 0) });
+    }
+    if (hasServiceDraft(serviceDraft)) {
+      candidates.push({ section: "services", updatedAt: Number(serviceDraft.updatedAt || 0) });
+    }
+
+    if (!candidates.length) return "";
+    candidates.sort((a, b) => b.updatedAt - a.updatedAt);
+    return candidates[0].section;
   }
 
   const formFields = {
@@ -2369,10 +2531,16 @@ function initAdminPage() {
     }
     renderAnnouncementAdminList();
     renderServiceAdminList();
-    fillServiceForm();
-    if (restoreAnnouncementDraft()) {
+    const latestDraftSection = getLatestAdminDraftSection();
+    if (latestDraftSection === "services" && restoreServiceDraft()) {
+      setAdminSection("services");
+    } else if (latestDraftSection === "news" && restoreAnnouncementDraft()) {
       setAdminSection("news");
+    } else if (latestDraftSection === "members" && restoreMemberDraft()) {
+      setAdminSection("members");
     } else {
+      fillServiceForm();
+      fillForm();
       fillAnnouncementForm();
       setAdminSection("members");
     }
@@ -2435,7 +2603,10 @@ function initAdminPage() {
     await syncAdminView();
   });
 
-  formResetBtn.addEventListener("click", () => fillForm());
+  formResetBtn.addEventListener("click", () => {
+    clearMemberDraft();
+    fillForm();
+  });
 
   memberForm.addEventListener("submit", async (event) => {
     event.preventDefault();
@@ -2478,6 +2649,7 @@ function initAdminPage() {
       await saveMemberToSupabase(payload, existingMember);
       await refreshMembersFromSupabase();
       renderAdminTable();
+      clearMemberDraft();
       fillForm();
       memberStatus.textContent = existingMember
         ? `${payload.fullName} was updated successfully.`
@@ -2578,22 +2750,26 @@ function initAdminPage() {
 
   announcementFormResetBtn.addEventListener("click", () => fillAnnouncementForm());
   serviceFormResetBtn.addEventListener("click", () => {
+    clearServiceDraft();
     const selectedBatch = getServices().find((batch) => batch.id === serviceSelect.value) || null;
     fillServiceForm(selectedBatch);
   });
   serviceBatchPlaceholderInput.addEventListener("change", () => {
     updateServiceFormMode();
     syncServiceRowsInput();
+    saveServiceDraft();
   });
 
   serviceAddRowBtn.addEventListener("click", () => {
     const entries = readServiceRowsFromEditor();
     entries.push(getBlankServiceEntry());
     renderServiceRowsEditor(entries);
+    saveServiceDraft();
   });
 
   serviceRowsBuilder.addEventListener("input", () => {
     syncServiceRowsInput();
+    saveServiceDraft();
   });
 
   serviceRowsBuilder.addEventListener("click", (event) => {
@@ -2611,10 +2787,31 @@ function initAdminPage() {
     if (Number.isNaN(index)) return;
     entries.splice(index, 1);
     renderServiceRowsEditor(entries);
+    saveServiceDraft();
+  });
+
+  Object.values(formFields).forEach((field) => {
+    field?.addEventListener("input", saveMemberDraft);
+    field?.addEventListener("change", saveMemberDraft);
   });
 
   [announcementTitleInput, announcementDateInput, announcementCategoryInput, announcementBodyInput].forEach((field) => {
     field.addEventListener("input", saveAnnouncementDraft);
+  });
+
+  [
+    serviceBatchSortOrderInput,
+    serviceBatchEyebrowInput,
+    serviceBatchTitleInput,
+    serviceBatchSummaryInput,
+    serviceBatchLocationInput,
+    serviceBatchLabelInput,
+    serviceBatchCurrentInput,
+    servicePlaceholderStatusInput,
+    servicePlaceholderNoteInput
+  ].forEach((field) => {
+    field?.addEventListener("input", saveServiceDraft);
+    field?.addEventListener("change", saveServiceDraft);
   });
 
   announcementSearchInput.addEventListener("input", renderAnnouncementAdminList);
@@ -2785,6 +2982,7 @@ function initAdminPage() {
       await saveServiceBatchesToSupabase(nextServices);
       await refreshServicesFromSupabase();
       renderServiceAdminList();
+      clearServiceDraft();
       fillServiceForm(getServices().find((batch) => batch.id === payload.id) || payload);
       setAdminSection("services");
       serviceStatus.textContent = `${payload.title} was updated successfully.`;
