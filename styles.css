@@ -1696,6 +1696,32 @@ tbody tr:hover {
   margin-bottom: 0;
 }
 
+.member-editor-entry-card {
+  border: 1px solid rgba(223, 170, 78, 0.24);
+  background:
+    linear-gradient(135deg, rgba(255, 249, 238, 0.98), rgba(255, 255, 255, 0.96));
+  box-shadow:
+    0 16px 34px rgba(120, 74, 10, 0.08),
+    inset 0 1px 0 rgba(255, 255, 255, 0.88);
+}
+
+.member-editor-entry {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1rem;
+}
+
+.member-entry-actions {
+  grid-column: auto;
+  margin: 0;
+}
+
+.member-entry-actions .btn {
+  min-width: 160px;
+}
+
 .admin-tools {
   grid-template-columns: minmax(0, 1.6fr) minmax(180px, 0.75fr) minmax(180px, 0.75fr) auto;
 }

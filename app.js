@@ -307,6 +307,20 @@ function isMissingSupabaseRelation(error, relationName) {
   );
 }
 
+function isMissingSupabaseColumn(error, columnName, relationName = "") {
+  const message = normalizeText(error?.message).toLowerCase();
+  const normalizedColumn = normalizeText(columnName).toLowerCase();
+  const normalizedRelation = normalizeText(relationName).toLowerCase();
+  if (!normalizedColumn) return false;
+
+  return (
+    error?.code === "PGRST204" ||
+    message.includes(`could not find the '${normalizedColumn}' column`) ||
+    message.includes(`column "${normalizedColumn}" does not exist`) ||
+    (normalizedRelation && message.includes(`of '${normalizedRelation}'`))
+  );
+}
+
 function parseYearValue(value) {
   const normalized = normalizeYear(value);
   return normalized ? Number(normalized) : null;
@@ -528,15 +542,44 @@ async function saveMemberToSupabase(member, existingMember = null) {
 
   const config = getSupabaseConfig();
   const payload = mapMemberToRemote(member);
+  const legacyPayload = {
+    ...payload
+  };
+  delete legacyPayload.service_status;
+  delete legacyPayload.life_status;
 
   if (existingMember?.id) {
     const { error } = await client.from(config.membersTable).update(payload).eq("id", existingMember.id);
-    if (error) throw error;
+    if (error) {
+      if (
+        isMissingSupabaseColumn(error, "service_status", config.membersTable) ||
+        isMissingSupabaseColumn(error, "life_status", config.membersTable)
+      ) {
+        const { error: legacyError } = await client.from(config.membersTable).update(legacyPayload).eq("id", existingMember.id);
+        if (legacyError) throw legacyError;
+        return existingMember.id;
+      }
+      throw error;
+    }
     return existingMember.id;
   }
 
   const { data, error } = await client.from(config.membersTable).insert(payload).select("id").single();
-  if (error) throw error;
+  if (error) {
+    if (
+      isMissingSupabaseColumn(error, "service_status", config.membersTable) ||
+      isMissingSupabaseColumn(error, "life_status", config.membersTable)
+    ) {
+      const { data: legacyData, error: legacyError } = await client
+        .from(config.membersTable)
+        .insert(legacyPayload)
+        .select("id")
+        .single();
+      if (legacyError) throw legacyError;
+      return legacyData?.id || null;
+    }
+    throw error;
+  }
   return data?.id || null;
 }
 
@@ -1655,6 +1698,9 @@ function initAdminPage() {
   const passwordField = passwordInput?.closest("label");
   const workspace = document.getElementById("adminWorkspace");
   const memberForm = document.getElementById("memberAdminForm");
+  const memberEditorCard = document.getElementById("memberEditorCard");
+  const memberOpenCreateBtn = document.getElementById("memberOpenCreateBtn");
+  const memberCloseEditorBtn = document.getElementById("memberCloseEditorBtn");
   const formResetBtn = document.getElementById("memberFormResetBtn");
   const memberStatus = document.getElementById("memberAdminStatus");
   const memberCount = document.getElementById("memberAdminCount");
@@ -1737,6 +1783,9 @@ function initAdminPage() {
     !passwordField ||
     !workspace ||
     !memberForm ||
+    !memberEditorCard ||
+    !memberOpenCreateBtn ||
+    !memberCloseEditorBtn ||
     !formResetBtn ||
     !memberStatus ||
     !memberCount ||
@@ -2228,6 +2277,10 @@ function initAdminPage() {
     renderServiceSelectionSummary(selectedBatch);
   }
 
+  function setMemberEditorVisible(isVisible) {
+    memberEditorCard.classList.toggle("hidden", !isVisible);
+  }
+
   function setAdminSection(section) {
     const showMembers = section === "members";
     const showNews = section === "news";
@@ -2373,7 +2426,8 @@ function initAdminPage() {
     adminJoinedFilter.value = years.includes(currentValue) ? currentValue : "";
   }
 
-  function fillForm(member = null) {
+  function fillForm(member = null, options = {}) {
+    const { showEditor = false } = options;
     const members = getMembers();
     memberIdInput.value = member?.id || "";
     serialIdInput.value = member?.serialId || generateSerialId(members);
@@ -2385,6 +2439,10 @@ function initAdminPage() {
     memberStatus.textContent = member
       ? `Editing ${member.fullName}. Save when you are ready.`
       : "Fill in the form and save to create a new member record.";
+
+    if (showEditor) {
+      setMemberEditorVisible(true);
+    }
   }
 
   function renderAdminTable() {
@@ -2419,6 +2477,7 @@ function initAdminPage() {
     shouldRevealAdminWorkspace = false;
     workspace.classList.add("hidden");
     setAdminLoginState(false);
+    setMemberEditorVisible(false);
     memberForm.reset();
     memberIdInput.value = "";
     serialIdInput.value = "";
@@ -2537,6 +2596,7 @@ function initAdminPage() {
     } else if (latestDraftSection === "news" && restoreAnnouncementDraft()) {
       setAdminSection("news");
     } else if (latestDraftSection === "members" && restoreMemberDraft()) {
+      setMemberEditorVisible(true);
       setAdminSection("members");
     } else {
       fillServiceForm();
@@ -2603,9 +2663,18 @@ function initAdminPage() {
     await syncAdminView();
   });
 
+  memberOpenCreateBtn.addEventListener("click", () => {
+    fillForm(null, { showEditor: true });
+    memberForm.scrollIntoView({ behavior: "smooth", block: "start" });
+  });
+
+  memberCloseEditorBtn.addEventListener("click", () => {
+    setMemberEditorVisible(false);
+  });
+
   formResetBtn.addEventListener("click", () => {
     clearMemberDraft();
-    fillForm();
+    fillForm(null, { showEditor: true });
   });
 
   memberForm.addEventListener("submit", async (event) => {
@@ -2680,7 +2749,7 @@ function initAdminPage() {
     if (!selected) return;
 
     if (action === "edit-member") {
-      fillForm(selected);
+      fillForm(selected, { showEditor: true });
       memberForm.scrollIntoView({ behavior: "smooth", block: "start" });
       return;
     }

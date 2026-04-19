@@ -116,13 +116,27 @@
           </section>
 
           <section id="memberAdminPanel" class="admin-panel-group">
-          <section class="card form-card">
+          <section class="card member-editor-entry-card">
+            <div class="member-editor-entry">
+              <div>
+                <p class="eyebrow">Member Actions</p>
+                <h3 class="section-title">Open the Member Editor Only When Needed</h3>
+                <p class="muted">Use the button below to add a new member. Existing records can still be opened from the table.</p>
+              </div>
+              <div class="form-actions member-entry-actions">
+                <button class="btn btn-primary" id="memberOpenCreateBtn" type="button">Add Member</button>
+              </div>
+            </div>
+          </section>
+
+          <section id="memberEditorCard" class="card form-card hidden">
             <div class="section-head">
               <div>
                 <p class="eyebrow">Editor</p>
                 <h3 class="section-title">Member Record Form</h3>
                 <p class="muted">Add a new member or update an existing record.</p>
               </div>
+              <button class="btn btn-outline" id="memberCloseEditorBtn" type="button">Close</button>
             </div>
 
             <form id="memberAdminForm" class="form-grid">
