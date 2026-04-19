@@ -63,6 +63,14 @@ const SITE_PAGE_INDEX = [
   },
   {
     type: "Page",
+    title: "Gallery",
+    href: "gallery.html",
+    summary: "Recent activities, official photographs, community gatherings, and visual highlights from NGT.",
+    keywords:
+      "gallery recent activities photos photographs events fellowship outreach official highlights ngt visual moments"
+  },
+  {
+    type: "Page",
     title: "History",
     href: "history.html",
     summary: "History and formation of NGT, its royal mandate, institutional roots, and continued purpose.",
