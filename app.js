@@ -2427,7 +2427,7 @@ function initAdminPage() {
   }
 
   function fillForm(member = null, options = {}) {
-    const { showEditor = false } = options;
+    const { showEditor = false, persistDraft = false } = options;
     const members = getMembers();
     memberIdInput.value = member?.id || "";
     serialIdInput.value = member?.serialId || generateSerialId(members);
@@ -2442,6 +2442,10 @@ function initAdminPage() {
 
     if (showEditor) {
       setMemberEditorVisible(true);
+    }
+
+    if (persistDraft) {
+      saveMemberDraft();
     }
   }
 
@@ -2664,7 +2668,7 @@ function initAdminPage() {
   });
 
   memberOpenCreateBtn.addEventListener("click", () => {
-    fillForm(null, { showEditor: true });
+    fillForm(null, { showEditor: true, persistDraft: true });
     memberForm.scrollIntoView({ behavior: "smooth", block: "start" });
   });
 
@@ -2749,7 +2753,7 @@ function initAdminPage() {
     if (!selected) return;
 
     if (action === "edit-member") {
-      fillForm(selected, { showEditor: true });
+      fillForm(selected, { showEditor: true, persistDraft: true });
       memberForm.scrollIntoView({ behavior: "smooth", block: "start" });
       return;
     }
