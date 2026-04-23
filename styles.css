@@ -2832,16 +2832,22 @@ hr {
   }
 
   .nav-wrap {
-    gap: 1.1rem;
-    min-height: 78px;
+    gap: 0.75rem;
+    min-height: 76px;
+    align-items: center;
     padding-top: 0;
     padding-bottom: 0;
   }
 
   .brand {
-    gap: 0.65rem;
-    max-width: calc(100% - 96px);
-    font-size: 0.94rem;
+    gap: 0.6rem;
+    min-width: 0;
+    max-width: calc(100% - 78px);
+    align-items: center;
+  }
+
+  .brand span {
+    line-height: 1.25;
   }
 
   .brand-mark {
@@ -2855,14 +2861,14 @@ hr {
   .main-nav {
     display: none;
     position: fixed;
-    left: 12px;
-    right: 12px;
-    top: 74px;
-    gap: 0.45rem;
+    left: 14px;
+    right: 14px;
+    top: 78px;
+    gap: 0.55rem;
     max-height: calc(100vh - 92px - env(safe-area-inset-bottom, 0px));
     overflow-y: auto;
-    padding: 0.85rem;
-    border-radius: 20px;
+    padding: 0.9rem;
+    border-radius: 22px;
     background: rgba(255, 250, 235, 0.98);
     border: 1px solid rgba(255, 140, 0, 0.15);
     box-shadow: var(--ngt-shadow);
@@ -2874,10 +2880,18 @@ hr {
   .main-nav a {
     padding: 0.85rem 1rem;
     border-radius: 14px;
+    text-align: left;
   }
 
   .main-nav .nav-search {
-    margin-bottom: 0.2rem;
+    width: 100%;
+    margin-bottom: 0;
+  }
+
+  .main-nav .nav-search-toggle {
+    width: 100%;
+    height: 48px;
+    border-radius: 14px;
   }
 
   .main-nav.open {
@@ -2890,14 +2904,19 @@ hr {
   }
 
   .nav-search-panel {
-    left: 0;
+    position: static;
+    top: auto;
+    right: auto;
+    left: auto;
     transform: none;
-    width: min(100%, 88vw);
+    min-width: 0;
+    width: 100%;
+    margin-top: 0.55rem;
   }
 
   .section {
-    padding-top: 2.1rem;
-    padding-bottom: 2.1rem;
+    padding-top: 2rem;
+    padding-bottom: 2rem;
   }
 
   .hero {
@@ -2942,9 +2961,9 @@ hr {
   .hero-stage {
     flex-direction: column;
     align-items: start;
-    gap: 0.8rem;
+    gap: 0.95rem;
     padding-top: min(64vw, 320px);
-    padding-bottom: 1.2rem;
+    padding-bottom: 1.35rem;
   }
 
   .hero-copy {
@@ -2952,7 +2971,7 @@ hr {
     width: 100%;
     margin-top: 0;
     margin-left: 0;
-    padding: 0.95rem 0.85rem 1rem;
+    padding: 1rem 0.95rem 1.05rem;
   }
 
   .hero-text,
@@ -3072,11 +3091,50 @@ hr {
   }
 
   .section-head {
+    flex-direction: column;
+    align-items: stretch;
     margin-bottom: 0.9rem;
+    gap: 0.75rem;
+  }
+
+  .section-head .btn {
+    width: 100%;
   }
 
   .section-head a {
     align-self: flex-start;
+  }
+
+  .activity-preview-head {
+    align-items: stretch;
+  }
+
+  .activity-preview-head .section-title {
+    max-width: 20ch;
+    margin-bottom: 0.3rem;
+    font-size: clamp(1.2rem, 5vw, 1.32rem);
+    line-height: 1.24;
+  }
+
+  .activity-preview-head .muted {
+    max-width: 34ch;
+    font-size: 0.92rem;
+    line-height: 1.55;
+  }
+
+  .activity-preview-head .btn {
+    width: 100%;
+  }
+
+  .activity-card,
+  .gallery-page-card {
+    gap: 0.8rem;
+    padding: 0.85rem;
+  }
+
+  .activity-card-copy,
+  .gallery-page-copy {
+    gap: 0.4rem;
   }
 
   .quick-links,
@@ -3353,8 +3411,8 @@ hr {
 @media (max-width: 768px) {
   .container {
     width: 100%;
-    padding-left: 12px;
-    padding-right: 12px;
+    padding-left: 14px;
+    padding-right: 14px;
   }
 
   h1 {
@@ -3491,23 +3549,24 @@ hr {
 @media (max-width: 480px) {
   .container {
     width: 100%;
-    padding-left: 10px;
-    padding-right: 10px;
+    padding-left: 12px;
+    padding-right: 12px;
   }
 
   .nav-wrap {
-    min-height: 70px;
+    gap: 0.65rem;
+    min-height: 68px;
   }
 
   .main-nav {
-    left: 10px;
-    right: 10px;
+    left: 12px;
+    right: 12px;
     top: 68px;
     padding: 0.75rem 0.75rem calc(0.75rem + env(safe-area-inset-bottom, 0px));
   }
 
   .brand {
-    max-width: calc(100% - 82px);
+    max-width: calc(100% - 72px);
     font-size: 0.82rem;
   }
 
@@ -3533,7 +3592,7 @@ hr {
   .hero-copy {
     margin-top: 0;
     margin-left: 0;
-    padding: 0.8rem 0.75rem 0.9rem;
+    padding: 0.85rem 0.8rem 0.95rem;
   }
 
   .hero h1,
@@ -3569,6 +3628,18 @@ hr {
 
   .section-head {
     margin-bottom: 0.8rem;
+    gap: 0.7rem;
+  }
+
+  .activity-preview-head .section-title {
+    max-width: none;
+    font-size: 1.1rem;
+    line-height: 1.28;
+  }
+
+  .activity-preview-head .muted {
+    font-size: 0.88rem;
+    line-height: 1.5;
   }
 
   body[data-page="contact"] .page-hero-card h1,
