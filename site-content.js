@@ -56,9 +56,17 @@ window.NGT_SITE_CONTENT = {
       isCurrent: false,
       isPlaceholder: false,
       entries: [
-        { name: "Dasho Khandu Wangchuk", post: "--", residence: "Thimphu", remarks: "--" },
-        { name: "Dasho Y.T. Wangchuk", post: "--", residence: "Thimphu", remarks: "--" },
-        { name: "Dasho Pema Thinlay", post: "--", residence: "Thimphu", remarks: "--" }
+        { name: "Dasho Rinzin Getshen", post: "--", residence: "Thimphu", remarks: "--" },
+        { name: "Dasho Dago Tshering", post: "--", residence: "Thimphu", remarks: "--" },
+        { name: "Dasho Karma Lethro", post: "--", residence: "Thimphu", remarks: "--" },
+        { name: "Dasho Dawa Tshering", post: "--", residence: "Thimphu", remarks: "--" },
+        { name: "Dasho Wangdi Norbhu", post: "--", residence: "Thimphu", remarks: "--" },
+        { name: "Dasho Dr. Sonam Tenzin", post: "--", residence: "Thimphu", remarks: "--" },
+        { name: "Dasho Sonam Tshering", post: "--", residence: "Thimphu", remarks: "--" },
+        { name: "Dasho Chagyel", post: "--", residence: "Thimphu", remarks: "--" },
+        { name: "Dasho Sangay Ngedup Dorji", post: "--", residence: "Thimphu", remarks: "--" },
+        { name: "Dasho Yanki T. Wangchuk", post: "--", residence: "Thimphu", remarks: "--" },
+        { name: "Dasho Khandu Wangchuk", post: "--", residence: "Thimphu", remarks: "--" }
       ]
     },
     {
